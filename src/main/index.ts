@@ -37,8 +37,8 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.driveList, () => listRemovableDrives())
 
-  ipcMain.handle(IPC.driveCheckCompliance, (_event, driveLetter: string, profileId: string) =>
-    checkDriveComplianceById(driveLetter, profileId)
+  ipcMain.handle(IPC.driveCheckCompliance, (_event, driveLetter: string, profileId: string, group?: string) =>
+    checkDriveComplianceById(driveLetter, profileId, group)
   )
 
   ipcMain.handle(IPC.driveUpload, (event, request: DriveUploadRequest) =>

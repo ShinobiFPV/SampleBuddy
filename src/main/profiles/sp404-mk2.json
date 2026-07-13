@@ -17,10 +17,11 @@
   },
   "layout": {
     "rootFolder": "IMPORT",
-    "filesInRootOnly": true
+    "filesInRootOnly": true,
+    "folderTemplate": "{group}"
   },
   "drive": {
     "filesystem": "FAT32"
   },
-  "userNotes": "Card must be formatted by the SP-404 MKII itself; files go in the IMPORT folder."
+  "userNotes": "Card must be formatted by the SP-404 MKII itself; files go in the IMPORT folder. Optionally group them into a named subfolder inside IMPORT — the MKII's own import browser can navigate into it."
 }

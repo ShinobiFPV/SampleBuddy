@@ -34,8 +34,8 @@ const api = {
   },
   drive: {
     list: (): Promise<DriveInfo[]> => ipcRenderer.invoke(IPC.driveList),
-    checkCompliance: (driveLetter: string, profileId: string): Promise<DriveComplianceResult> =>
-      ipcRenderer.invoke(IPC.driveCheckCompliance, driveLetter, profileId),
+    checkCompliance: (driveLetter: string, profileId: string, group?: string): Promise<DriveComplianceResult> =>
+      ipcRenderer.invoke(IPC.driveCheckCompliance, driveLetter, profileId, group),
     upload: (request: DriveUploadRequest): Promise<DriveUploadResult> =>
       ipcRenderer.invoke(IPC.driveUpload, request),
     onUploadProgress: (cb: (e: DriveUploadProgressEvent) => void): (() => void) => {

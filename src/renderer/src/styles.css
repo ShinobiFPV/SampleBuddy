@@ -349,6 +349,30 @@ body,
   color: #888;
 }
 
+.drive-group-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 10px;
+}
+
+.drive-group-field input {
+  background: #1c1c1c;
+  border: 1px solid #2e2e2e;
+  border-radius: 5px;
+  color: #e8e8e8;
+  padding: 6px 9px;
+  font-size: 13px;
+  max-width: 260px;
+}
+
+.drive-group-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .drive-list {
   display: flex;
   flex-direction: column;

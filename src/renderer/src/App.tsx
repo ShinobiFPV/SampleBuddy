@@ -46,6 +46,7 @@ export default function App(): JSX.Element {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<DriveUploadProgressEvent | null>(null)
   const [uploadedFilenames, setUploadedFilenames] = useState<string[] | null>(null)
+  const [group, setGroup] = useState('')
 
   const selectedProfile = useMemo(
     () => profiles.find((p) => p.id === selectedProfileId),
@@ -108,6 +109,7 @@ export default function App(): JSX.Element {
     setSelectedDriveLetter(null)
     setCompliance(null)
     setUploadedFilenames(null)
+    setGroup('')
     if (selectedProfile?.transferMethod === 'usb-drive') refreshDrives()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfileId])
@@ -115,14 +117,36 @@ export default function App(): JSX.Element {
   useEffect(() => {
     if (!selectedDriveLetter || !selectedProfileId) {
       setCompliance(null)
+      setCheckingCompliance(false)
       return
     }
+    // checkingCompliance flips true immediately (not just once the debounce
+    // fires) so the Upload button — and the confirm dialog it gates — can
+    // never act on a compliance/destinationPath snapshot that's stale
+    // relative to a group name the user just typed.
     setCheckingCompliance(true)
-    window.sampleBuddy.drive
-      .checkCompliance(selectedDriveLetter, selectedProfileId)
-      .then(setCompliance)
-      .finally(() => setCheckingCompliance(false))
-  }, [selectedDriveLetter, selectedProfileId])
+    // clearTimeout only stops a check that hasn't fired yet — it can't
+    // cancel one already in flight. Without this guard, an older request
+    // (e.g. from the drive being selected) can resolve *after* a newer one
+    // (from a group name typed right after) and silently clobber it with a
+    // stale destinationPath, exactly the kind of mismatch the confirm
+    // dialog exists to prevent.
+    let cancelled = false
+    const timer = setTimeout(() => {
+      window.sampleBuddy.drive
+        .checkCompliance(selectedDriveLetter, selectedProfileId, group)
+        .then((result) => {
+          if (!cancelled) setCompliance(result)
+        })
+        .finally(() => {
+          if (!cancelled) setCheckingCompliance(false)
+        })
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [selectedDriveLetter, selectedProfileId, group])
 
   async function handleSelectFolder(): Promise<void> {
     const dir = await window.sampleBuddy.dialog.selectSourceFolder()
@@ -169,7 +193,7 @@ export default function App(): JSX.Element {
   }
 
   function handleUploadClick(): void {
-    if (compliance?.compliant && checkedFilenames.length > 0) setConfirmOpen(true)
+    if (compliance?.compliant && checkedFilenames.length > 0 && !checkingCompliance) setConfirmOpen(true)
   }
 
   async function handleConfirmUpload(): Promise<void> {
@@ -182,7 +206,8 @@ export default function App(): JSX.Element {
       const result = await window.sampleBuddy.drive.upload({
         profileId: selectedProfileId,
         driveLetter: selectedDriveLetter,
-        filenames: checkedFilenames
+        filenames: checkedFilenames,
+        group
       })
       setUploadedFilenames(result.uploaded)
     } finally {
@@ -231,6 +256,8 @@ export default function App(): JSX.Element {
             uploadProgress={uploadProgress}
             uploadedFilenames={uploadedFilenames}
             onUploadClick={handleUploadClick}
+            group={group}
+            onGroupChange={setGroup}
           />
         </div>
 

@@ -24,22 +24,38 @@ function baseName(filename: string): string {
   return dot > 0 ? filename.slice(0, dot) : filename
 }
 
-/** Sanitizes a bare filename (no extension) against a profile's naming
- *  rules: ASCII-folds if required, replaces disallowed characters with
- *  underscores, and trims to the profile's max length (reserving room for
- *  the .wav extension all outputs get). */
-export function sanitizeBaseName(name: string, profile: DeviceProfile): string {
+/** ASCII-folds (if the profile requires it) and replaces disallowed
+ *  characters with underscores. Shared by sanitizeBaseName (filenames) and
+ *  sanitizeFolderName (subfolder names) — the two differ only in how much
+ *  of maxLength they get to use. */
+function sanitizeChars(name: string, profile: DeviceProfile): string {
   let result = profile.naming.asciiOnly ? stripDiacritics(name).replace(/[^\x00-\x7F]/g, '') : name
 
   const charClass = charClassFromPattern(profile.naming.allowedCharsRegex)
   result = Array.from(result)
     .map((ch) => (charClass.test(ch) ? ch : '_'))
     .join('')
-  result = result.replace(/_+/g, '_').replace(/^[_\s]+|[_\s]+$/g, '')
+  return result.replace(/_+/g, '_').replace(/^[_\s]+|[_\s]+$/g, '')
+}
+
+/** Sanitizes a bare filename (no extension) against a profile's naming
+ *  rules, trimming to the profile's max length (reserving room for the
+ *  .wav extension all outputs get). */
+export function sanitizeBaseName(name: string, profile: DeviceProfile): string {
+  let result = sanitizeChars(name, profile)
   if (!result) result = 'sample'
 
   const maxBaseLength = Math.max(1, profile.naming.maxLength - OUTPUT_EXT.length)
   return result.slice(0, maxBaseLength)
+}
+
+/** Sanitizes a user-typed subfolder name (e.g. a Phase 3 "group" folder
+ *  under a profile's IMPORT-style rootFolder) against the same character
+ *  rules as filenames. Returns '' for blank input — callers treat that as
+ *  "no subfolder", not a folder literally named "sample". */
+export function sanitizeFolderName(name: string, profile: DeviceProfile): string {
+  const result = sanitizeChars(name, profile)
+  return result.slice(0, profile.naming.maxLength)
 }
 
 export function isNameCompliant(filename: string, profile: DeviceProfile): boolean {

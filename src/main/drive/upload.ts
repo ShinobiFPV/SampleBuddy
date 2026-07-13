@@ -1,4 +1,4 @@
-import { copyFile, readdir } from 'fs/promises'
+import { copyFile, mkdir, readdir } from 'fs/promises'
 import { join } from 'path'
 import { getProfile } from '../profiles'
 import { getWorkspaceDir } from '../audio/workspace'
@@ -29,12 +29,17 @@ export async function uploadToDrive(
   const drive = drives.find((d) => d.driveLetter === request.driveLetter)
   if (!drive) throw new Error(`Drive ${request.driveLetter}: is no longer connected`)
 
-  const compliance = await checkDriveCompliance(drive, profile)
+  const compliance = await checkDriveCompliance(drive, profile, request.group)
   if (!compliance.compliant) {
     throw new Error(`Drive is no longer compliant: ${compliance.reasons.join('; ')}`)
   }
 
-  const destinationPath = destinationPathFor(request.driveLetter, profile)
+  const destinationPath = destinationPathFor(request.driveLetter, profile, request.group)
+  // The root folder (e.g. IMPORT) must already exist — verified above and
+  // never created here. A "group" subfolder underneath it is the user's
+  // own organizational choice, so it's fine to create on demand.
+  await mkdir(destinationPath, { recursive: true })
+
   const workspaceDir = getWorkspaceDir(profile.id)
   const claimed = await existingNames(destinationPath)
 

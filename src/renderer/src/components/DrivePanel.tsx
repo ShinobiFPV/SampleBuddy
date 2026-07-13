@@ -17,6 +17,8 @@ interface DrivePanelProps {
   uploadProgress: DriveUploadProgressEvent | null
   uploadedFilenames: string[] | null
   onUploadClick: () => void
+  group: string
+  onGroupChange: (group: string) => void
 }
 
 export default function DrivePanel({
@@ -34,7 +36,9 @@ export default function DrivePanel({
   uploading,
   uploadProgress,
   uploadedFilenames,
-  onUploadClick
+  onUploadClick,
+  group,
+  onGroupChange
 }: DrivePanelProps): JSX.Element {
   const isStagingFolder = profile?.transferMethod === 'staging-folder'
 
@@ -54,7 +58,7 @@ export default function DrivePanel({
     )
   }
 
-  const canUpload = Boolean(compliance?.compliant) && checkedCount > 0 && !uploading
+  const canUpload = Boolean(compliance?.compliant) && checkedCount > 0 && !uploading && !checkingCompliance
 
   return (
     <section className="panel drive-panel">
@@ -71,6 +75,18 @@ export default function DrivePanel({
           {profile.drive.maxCapacityGB ? `, ${profile.drive.maxCapacityGB}GB or smaller` : ''}
           {profile.layout.rootFolder ? `, files in a "${profile.layout.rootFolder}" folder` : ''}.
         </p>
+      )}
+
+      {profile?.layout.folderTemplate && (
+        <label className="drive-group-field">
+          Subfolder in {profile.layout.rootFolder} (optional)
+          <input
+            type="text"
+            value={group}
+            onChange={(e) => onGroupChange(e.target.value)}
+            placeholder="e.g. 808 Pack"
+          />
+        </label>
       )}
 
       {drives.length === 0 && !loadingDrives && (

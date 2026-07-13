@@ -107,6 +107,10 @@ export interface DriveUploadRequest {
   /** Filenames (not full paths) of files already sitting in the profile's
    *  workspace dir — i.e. the checked rows in the formatted-output panel. */
   filenames: string[]
+  /** User-typed subfolder name (Phase 3) — only meaningful when the
+   *  profile's layout.folderTemplate is set (e.g. SP-404 MKII's optional
+   *  grouping folder inside IMPORT). Ignored otherwise. */
+  group?: string
 }
 
 export interface DriveUploadProgressEvent {
