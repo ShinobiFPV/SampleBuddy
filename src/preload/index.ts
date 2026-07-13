@@ -2,6 +2,11 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   IPC,
   type DeviceProfile,
+  type DriveComplianceResult,
+  type DriveInfo,
+  type DriveUploadProgressEvent,
+  type DriveUploadRequest,
+  type DriveUploadResult,
   type FormatNowRequest,
   type FormatNowResult,
   type FormatProgressEvent,
@@ -25,6 +30,18 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: FormatProgressEvent): void => cb(payload)
       ipcRenderer.on(IPC.audioFormatProgress, listener)
       return () => ipcRenderer.removeListener(IPC.audioFormatProgress, listener)
+    }
+  },
+  drive: {
+    list: (): Promise<DriveInfo[]> => ipcRenderer.invoke(IPC.driveList),
+    checkCompliance: (driveLetter: string, profileId: string): Promise<DriveComplianceResult> =>
+      ipcRenderer.invoke(IPC.driveCheckCompliance, driveLetter, profileId),
+    upload: (request: DriveUploadRequest): Promise<DriveUploadResult> =>
+      ipcRenderer.invoke(IPC.driveUpload, request),
+    onUploadProgress: (cb: (e: DriveUploadProgressEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: DriveUploadProgressEvent): void => cb(payload)
+      ipcRenderer.on(IPC.driveUploadProgress, listener)
+      return () => ipcRenderer.removeListener(IPC.driveUploadProgress, listener)
     }
   }
 }

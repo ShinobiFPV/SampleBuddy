@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
   DeviceProfile,
+  DriveComplianceResult,
+  DriveInfo,
+  DriveUploadProgressEvent,
   FileAction,
   FormatNowResult,
   FormatProgressEvent,
@@ -13,6 +16,7 @@ import NamingOptions from './components/NamingOptions'
 import FormatButton from './components/FormatButton'
 import OutputPanel from './components/OutputPanel'
 import DrivePanel from './components/DrivePanel'
+import ConfirmUploadDialog from './components/ConfirmUploadDialog'
 
 function defaultActionFor(scanned: ScannedFile, existing?: FileAction): FileAction {
   if (existing) return existing
@@ -33,9 +37,29 @@ export default function App(): JSX.Element {
   const [formatResult, setFormatResult] = useState<FormatNowResult | null>(null)
   const [outputChecked, setOutputChecked] = useState<Record<string, boolean>>({})
 
+  const [drives, setDrives] = useState<DriveInfo[]>([])
+  const [loadingDrives, setLoadingDrives] = useState(false)
+  const [selectedDriveLetter, setSelectedDriveLetter] = useState<string | null>(null)
+  const [compliance, setCompliance] = useState<DriveComplianceResult | null>(null)
+  const [checkingCompliance, setCheckingCompliance] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<DriveUploadProgressEvent | null>(null)
+  const [uploadedFilenames, setUploadedFilenames] = useState<string[] | null>(null)
+
   const selectedProfile = useMemo(
     () => profiles.find((p) => p.id === selectedProfileId),
     [profiles, selectedProfileId]
+  )
+
+  const checkedFilenames = useMemo(
+    () => (formatResult?.files ?? []).filter((f) => outputChecked[f.filename] ?? true).map((f) => f.filename),
+    [formatResult, outputChecked]
+  )
+
+  const selectedDrive = useMemo(
+    () => drives.find((d) => d.driveLetter === selectedDriveLetter) ?? null,
+    [drives, selectedDriveLetter]
   )
 
   useEffect(() => {
@@ -65,6 +89,40 @@ export default function App(): JSX.Element {
     if (sourceDir && selectedProfileId) rescan(sourceDir, selectedProfileId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfileId])
+
+  async function refreshDrives(): Promise<void> {
+    setLoadingDrives(true)
+    try {
+      const list = await window.sampleBuddy.drive.list()
+      setDrives(list)
+      if (selectedDriveLetter && !list.some((d) => d.driveLetter === selectedDriveLetter)) {
+        setSelectedDriveLetter(null)
+        setCompliance(null)
+      }
+    } finally {
+      setLoadingDrives(false)
+    }
+  }
+
+  useEffect(() => {
+    setSelectedDriveLetter(null)
+    setCompliance(null)
+    setUploadedFilenames(null)
+    if (selectedProfile?.transferMethod === 'usb-drive') refreshDrives()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfileId])
+
+  useEffect(() => {
+    if (!selectedDriveLetter || !selectedProfileId) {
+      setCompliance(null)
+      return
+    }
+    setCheckingCompliance(true)
+    window.sampleBuddy.drive
+      .checkCompliance(selectedDriveLetter, selectedProfileId)
+      .then(setCompliance)
+      .finally(() => setCheckingCompliance(false))
+  }, [selectedDriveLetter, selectedProfileId])
 
   async function handleSelectFolder(): Promise<void> {
     const dir = await window.sampleBuddy.dialog.selectSourceFolder()
@@ -105,6 +163,34 @@ export default function App(): JSX.Element {
     if (formatResult?.outputDir) await window.sampleBuddy.dialog.openPath(formatResult.outputDir)
   }
 
+  function handleSelectDrive(driveLetter: string): void {
+    setSelectedDriveLetter(driveLetter)
+    setUploadedFilenames(null)
+  }
+
+  function handleUploadClick(): void {
+    if (compliance?.compliant && checkedFilenames.length > 0) setConfirmOpen(true)
+  }
+
+  async function handleConfirmUpload(): Promise<void> {
+    if (!selectedDriveLetter || !selectedProfileId) return
+    setConfirmOpen(false)
+    setUploading(true)
+    setUploadProgress(null)
+    const unsubscribe = window.sampleBuddy.drive.onUploadProgress(setUploadProgress)
+    try {
+      const result = await window.sampleBuddy.drive.upload({
+        profileId: selectedProfileId,
+        driveLetter: selectedDriveLetter,
+        filenames: checkedFilenames
+      })
+      setUploadedFilenames(result.uploaded)
+    } finally {
+      unsubscribe()
+      setUploading(false)
+    }
+  }
+
   return (
     <div className="app">
       <Header profiles={profiles} selectedProfileId={selectedProfileId} onSelectProfile={setSelectedProfileId} />
@@ -132,7 +218,19 @@ export default function App(): JSX.Element {
           <DrivePanel
             profile={selectedProfile}
             outputDir={formatResult?.outputDir ?? null}
+            checkedCount={checkedFilenames.length}
             onOpenStagingFolder={handleOpenStagingFolder}
+            drives={drives}
+            loadingDrives={loadingDrives}
+            onRefreshDrives={refreshDrives}
+            selectedDriveLetter={selectedDriveLetter}
+            onSelectDrive={handleSelectDrive}
+            compliance={compliance}
+            checkingCompliance={checkingCompliance}
+            uploading={uploading}
+            uploadProgress={uploadProgress}
+            uploadedFilenames={uploadedFilenames}
+            onUploadClick={handleUploadClick}
           />
         </div>
 
@@ -143,6 +241,16 @@ export default function App(): JSX.Element {
           onClick={handleFormatNow}
         />
       </main>
+
+      {confirmOpen && selectedDrive && compliance && (
+        <ConfirmUploadDialog
+          drive={selectedDrive}
+          destinationPath={compliance.destinationPath}
+          fileCount={checkedFilenames.length}
+          onConfirm={handleConfirmUpload}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
     </div>
   )
 }

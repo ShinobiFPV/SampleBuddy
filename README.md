@@ -8,6 +8,8 @@ SampleBuddy does. Point it at a folder of samples, tell it what hardware you're 
 
 Think of it as a bouncer for your sample folder. It checks IDs at the door so your hardware doesn't have to.
 
+![Source files scanned with compliance badges](docs/screenshots/scan-compliance.png)
+
 ## Supported hardware
 
 | Device | Transfer method | Target format | Notes |
@@ -21,11 +23,20 @@ More devices are on the way. If your sampler has a weird, specific rule about fi
 ## How it works
 
 1. **Pick your hardware.** The dropdown tells you its quirks so you don't have to remember them.
-2. **Point it at a folder.** SampleBuddy scans everything and tells you, file by file, what's compliant and what isn't — and why.
-3. **Hit FORMAT NOW.** Anything that needs converting gets converted; anything too long gets a truncate-or-skip choice; filenames get sanitized to match the device's rules.
-4. **Grab your files.** They're sitting in a clean output folder, untouched originals still safe and sound right where you left them.
+2. **Point it at a folder.** SampleBuddy scans everything and tells you, file by file, what's compliant and what isn't — and why. Anything too long gets an explicit truncate-or-skip choice, not a silent guess.
+3. **Hit FORMAT NOW.** Anything that needs converting gets converted, and filenames get sanitized to match the device's rules.
 
-Drive/card upload management is coming in Phase 2 — for now, formatted files land in a local workspace folder you can copy over yourself.
+   ![Formatted output ready to go](docs/screenshots/formatted-output.png)
+
+4. **Send it to a drive.** For USB-drive devices, SampleBuddy detects connected removable drives, checks each one against the profile's requirements (filesystem, capacity, expected folder layout), and only lets you upload once it's actually compliant.
+
+   ![Drive detected and confirmed compliant](docs/screenshots/drive-upload.png)
+
+5. **Confirm before it writes anything.** Uploading to the wrong USB stick is the kind of mistake you don't get to undo, so SampleBuddy always shows you exactly what's about to happen before it happens.
+
+   ![Confirmation dialog before writing to a drive](docs/screenshots/confirm-upload.png)
+
+For staging-folder devices like the SEQTRAK, there's no drive step — SampleBuddy just gives you a button to pop open the output folder so you can hand it to the manufacturer's own import app.
 
 ## Dev commands
 

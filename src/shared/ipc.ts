@@ -9,7 +9,11 @@ export const IPC = {
   dialogOpenPath: 'dialog:openPath',
   audioScanFolder: 'audio:scanFolder',
   audioFormatNow: 'audio:formatNow',
-  audioFormatProgress: 'audio:formatProgress'
+  audioFormatProgress: 'audio:formatProgress',
+  driveList: 'drive:list',
+  driveCheckCompliance: 'drive:checkCompliance',
+  driveUpload: 'drive:upload',
+  driveUploadProgress: 'drive:uploadProgress'
 } as const
 
 export type ComplianceStatus = 'ok' | 'needs-conversion' | 'cannot-comply'
@@ -79,4 +83,41 @@ export interface FormatNowResult {
   outputDir: string
   files: FormattedFile[]
   skipped: string[]
+}
+
+export interface DriveInfo {
+  /** Single letter, no colon (e.g. "F"). */
+  driveLetter: string
+  label: string
+  filesystem: string
+  totalBytes: number
+  freeBytes: number
+}
+
+export interface DriveComplianceResult {
+  compliant: boolean
+  reasons: string[]
+  /** Where files will actually be written for this profile, e.g. "F:\IMPORT". */
+  destinationPath: string
+}
+
+export interface DriveUploadRequest {
+  profileId: string
+  driveLetter: string
+  /** Filenames (not full paths) of files already sitting in the profile's
+   *  workspace dir — i.e. the checked rows in the formatted-output panel. */
+  filenames: string[]
+}
+
+export interface DriveUploadProgressEvent {
+  totalFiles: number
+  fileIndex: number
+  filename: string
+  overallPercent: number
+}
+
+export interface DriveUploadResult {
+  destinationPath: string
+  uploaded: string[]
+  renamed: Record<string, string>
 }

@@ -48,11 +48,34 @@ export function isNameCompliant(filename: string, profile: DeviceProfile): boole
   return sanitized === name && filename.toLowerCase().endsWith(OUTPUT_EXT)
 }
 
+/** Dedupes an already-finalized `<base>.wav` filename against every name in
+ *  `claimed` (existing files plus anything already assigned this run),
+ *  appending a numeric suffix — truncating the base if needed to stay
+ *  under the profile's max length. `claimed` is mutated as names are
+ *  assigned. Shared by the local conversion pipeline (naming.ts's own
+ *  caller below) and the drive-upload pipeline, which dedupes finalized
+ *  workspace filenames against whatever's already on the drive. */
+export function dedupeFilename(filename: string, profile: DeviceProfile, claimed: Set<string>): string {
+  const base = baseName(filename)
+  const maxBaseLength = Math.max(1, profile.naming.maxLength - OUTPUT_EXT.length)
+
+  let candidate = `${base}${OUTPUT_EXT}`
+  let suffix = 1
+  while (claimed.has(candidate.toLowerCase())) {
+    const suffixText = `_${suffix}`
+    const truncatedBase = base.slice(0, Math.max(1, maxBaseLength - suffixText.length))
+    candidate = `${truncatedBase}${suffixText}${OUTPUT_EXT}`
+    suffix++
+  }
+  claimed.add(candidate.toLowerCase())
+  return candidate
+}
+
 /** Builds the final output filename for one source file: applies the
  *  naming-options prefix/numbering, re-sanitizes the assembled name (a
  *  prefix could itself introduce disallowed characters), then dedupes
  *  against every name already claimed in this run or already present in
- *  the output workspace. `claimed` is mutated as names are assigned. */
+ *  the output workspace. */
 export function buildOutputFilename(
   sourceFilename: string,
   index: number,
@@ -64,16 +87,5 @@ export function buildOutputFilename(
   const number = naming.numbering === 'sequential' ? naming.startNumber + index : null
   const numberPart = number !== null ? `${String(number).padStart(3, '0')}_` : ''
   const assembled = sanitizeBaseName(`${naming.prefix}${numberPart}${sanitizedSource}`, profile)
-
-  const maxBaseLength = Math.max(1, profile.naming.maxLength - OUTPUT_EXT.length)
-  let candidate = `${assembled}${OUTPUT_EXT}`
-  let suffix = 1
-  while (claimed.has(candidate.toLowerCase())) {
-    const suffixText = `_${suffix}`
-    const truncatedBase = assembled.slice(0, Math.max(1, maxBaseLength - suffixText.length))
-    candidate = `${truncatedBase}${suffixText}${OUTPUT_EXT}`
-    suffix++
-  }
-  claimed.add(candidate.toLowerCase())
-  return candidate
+  return dedupeFilename(`${assembled}${OUTPUT_EXT}`, profile, claimed)
 }

@@ -1,7 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import { IPC, type FormatNowRequest } from '../shared/ipc'
+import { IPC, type FormatNowRequest, type DriveUploadRequest } from '../shared/ipc'
 import { listProfiles } from './profiles'
 import { scanFolderForProfile, formatNow } from './audio/pipeline'
+import { listRemovableDrives } from './drive/detect'
+import { checkDriveComplianceById } from './drive/compliance'
+import { uploadToDrive } from './drive/upload'
 import { createMainWindow } from './windows'
 
 app.setName('SampleBuddy')
@@ -29,6 +32,18 @@ function registerIpc(): void {
   ipcMain.handle(IPC.audioFormatNow, (event, request: FormatNowRequest) =>
     formatNow(request, (progress) => {
       if (!event.sender.isDestroyed()) event.sender.send(IPC.audioFormatProgress, progress)
+    })
+  )
+
+  ipcMain.handle(IPC.driveList, () => listRemovableDrives())
+
+  ipcMain.handle(IPC.driveCheckCompliance, (_event, driveLetter: string, profileId: string) =>
+    checkDriveComplianceById(driveLetter, profileId)
+  )
+
+  ipcMain.handle(IPC.driveUpload, (event, request: DriveUploadRequest) =>
+    uploadToDrive(request, (progress) => {
+      if (!event.sender.isDestroyed()) event.sender.send(IPC.driveUploadProgress, progress)
     })
   )
 }
