@@ -1,0 +1,42 @@
+name: Bug report
+description: Something isn't working right
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device / profile
+      description: Which hardware sampler / device profile were you using?
+      placeholder: "e.g. Roland SP-404 MKII"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample-files
+    attributes:
+      label: Sample files or filenames involved
+      description: If the bug relates to specific files (e.g. a filename that failed sanitization, or a file that failed conversion), share the filename or a minimal reproducing example. Please redact anything sensitive.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: SampleBuddy version, Windows version, and drive type (USB stick / SD card) if relevant.
+      placeholder: |
+        SampleBuddy: 0.1.0
+        Windows: 11 23H2
+        Drive: SanDisk 32GB USB (FAT32)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Paste any error output, or attach a screenshot.

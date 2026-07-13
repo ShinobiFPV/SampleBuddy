@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an improvement, or ask for support for a new device
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to see?
+    validations:
+      required: true
+
+  - type: textarea
+    id: device-spec
+    attributes:
+      label: Device profile details (if requesting new hardware support)
+      description: Target format (bit depth, sample rate), transfer method (staging folder vs. USB drive), filename rules, and any drive-layout requirements (filesystem, folder structure, capacity limits). Link to the manufacturer's spec if you have one.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Why is this useful?
+      description: What's the use case or problem this solves?
