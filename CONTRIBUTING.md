@@ -33,4 +33,4 @@ Open an issue with:
 
 ## Code of conduct
 
-Be respectful and constructive. This is a hobby-scale project maintained in spare time — patience with response times is appreciated.
+By participating, you're expected to uphold the [Code of Conduct](CODE_OF_CONDUCT.md). This is a hobby-scale project maintained in spare time — patience with response times is appreciated.
