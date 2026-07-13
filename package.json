@@ -4,7 +4,7 @@
   "description": "Convert and organize audio samples for specific hardware samplers, then upload them to a correctly formatted removable drive.",
   "main": "./out/main/index.js",
   "author": "ShinTech Electronics",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
