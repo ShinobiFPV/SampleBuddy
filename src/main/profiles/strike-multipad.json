@@ -1,0 +1,25 @@
+{
+  "id": "strike-multipad",
+  "displayName": "Alesis Strike Multipad",
+  "manufacturer": "Alesis",
+  "transferMethod": "usb-drive",
+  "audio": {
+    "container": "wav",
+    "bitDepth": 16,
+    "sampleRate": 44100,
+    "channels": "keep"
+  },
+  "naming": {
+    "maxLength": 63,
+    "allowedCharsRegex": "^[A-Za-z0-9_-]+$",
+    "asciiOnly": true
+  },
+  "layout": {
+    "filesInRootOnly": true
+  },
+  "drive": {
+    "filesystem": "FAT32",
+    "maxCapacityGB": 32
+  },
+  "userNotes": "Drive must be FAT32 and 32GB or smaller, with samples placed directly in the root — no subfolders."
+}

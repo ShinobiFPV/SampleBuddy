@@ -1,0 +1,26 @@
+{
+  "id": "sp404-mk2",
+  "displayName": "Roland SP-404 MKII",
+  "manufacturer": "Roland",
+  "transferMethod": "usb-drive",
+  "audio": {
+    "container": "wav",
+    "bitDepth": 16,
+    "sampleRate": 48000,
+    "channels": "keep",
+    "minDurationMs": 100
+  },
+  "naming": {
+    "maxLength": 255,
+    "allowedCharsRegex": "^[A-Za-z0-9 _-]+$",
+    "asciiOnly": true
+  },
+  "layout": {
+    "rootFolder": "IMPORT",
+    "filesInRootOnly": true
+  },
+  "drive": {
+    "filesystem": "FAT32"
+  },
+  "userNotes": "Card must be formatted by the SP-404 MKII itself; files go in the IMPORT folder."
+}

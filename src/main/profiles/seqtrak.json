@@ -1,0 +1,22 @@
+{
+  "id": "seqtrak",
+  "displayName": "Yamaha SEQTRAK",
+  "manufacturer": "Yamaha",
+  "transferMethod": "staging-folder",
+  "audio": {
+    "container": "wav",
+    "bitDepth": 16,
+    "sampleRate": 44100,
+    "channels": "keep",
+    "maxDurationSec": 16
+  },
+  "naming": {
+    "maxLength": 255,
+    "allowedCharsRegex": "^[A-Za-z0-9 _-]+$",
+    "asciiOnly": true
+  },
+  "layout": {
+    "filesInRootOnly": true
+  },
+  "userNotes": "Import the staging folder using the Yamaha SEQTRAK desktop app — no direct drive transfer."
+}
