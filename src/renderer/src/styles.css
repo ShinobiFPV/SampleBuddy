@@ -383,18 +383,54 @@ body,
 .drive-row {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
   background: #1a1a1a;
   border: 1px solid #262626;
   border-radius: 6px;
   padding: 8px 10px;
-  cursor: pointer;
   font-size: 12px;
 }
 
-.drive-row input[type='radio'] {
+.drive-row-select {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.drive-row-select input[type='radio'] {
   margin-top: 3px;
   accent-color: var(--accent);
+}
+
+.btn-eject {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid #2e2e2e;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.btn-eject:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-eject:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.drive-eject-message {
+  margin: -4px 0 10px;
+  font-size: 11px;
+  color: var(--warn);
 }
 
 .drive-row-body {

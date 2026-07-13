@@ -19,6 +19,9 @@ interface DrivePanelProps {
   onUploadClick: () => void
   group: string
   onGroupChange: (group: string) => void
+  ejectingDriveLetter: string | null
+  ejectMessage: { driveLetter: string; message: string } | null
+  onEjectClick: (driveLetter: string) => void
 }
 
 export default function DrivePanel({
@@ -38,7 +41,10 @@ export default function DrivePanel({
   uploadedFilenames,
   onUploadClick,
   group,
-  onGroupChange
+  onGroupChange,
+  ejectingDriveLetter,
+  ejectMessage,
+  onEjectClick
 }: DrivePanelProps): JSX.Element {
   const isStagingFolder = profile?.transferMethod === 'staging-folder'
 
@@ -96,25 +102,36 @@ export default function DrivePanel({
       {drives.length > 0 && (
         <div className="drive-list">
           {drives.map((drive) => (
-            <label key={drive.driveLetter} className="drive-row">
-              <input
-                type="radio"
-                name="drive-select"
-                checked={selectedDriveLetter === drive.driveLetter}
-                onChange={() => onSelectDrive(drive.driveLetter)}
-              />
-              <div className="drive-row-body">
-                <span className="drive-row-title">
-                  {drive.driveLetter}: {drive.label || '(no label)'}
-                </span>
-                <span className="drive-row-specs">
-                  {drive.filesystem} · {formatBytes(drive.freeBytes)} free of {formatBytes(drive.totalBytes)}
-                </span>
-              </div>
-            </label>
+            <div key={drive.driveLetter} className="drive-row">
+              <label className="drive-row-select">
+                <input
+                  type="radio"
+                  name="drive-select"
+                  checked={selectedDriveLetter === drive.driveLetter}
+                  onChange={() => onSelectDrive(drive.driveLetter)}
+                />
+                <div className="drive-row-body">
+                  <span className="drive-row-title">
+                    {drive.driveLetter}: {drive.label || '(no label)'}
+                  </span>
+                  <span className="drive-row-specs">
+                    {drive.filesystem} · {formatBytes(drive.freeBytes)} free of {formatBytes(drive.totalBytes)}
+                  </span>
+                </div>
+              </label>
+              <button
+                className="btn-eject"
+                disabled={ejectingDriveLetter === drive.driveLetter}
+                onClick={() => onEjectClick(drive.driveLetter)}
+              >
+                {ejectingDriveLetter === drive.driveLetter ? 'Ejecting…' : 'Eject'}
+              </button>
+            </div>
           ))}
         </div>
       )}
+
+      {ejectMessage && <p className="drive-eject-message">{ejectMessage.message}</p>}
 
       {selectedDriveLetter && checkingCompliance && <p className="panel-empty">Checking drive…</p>}
 

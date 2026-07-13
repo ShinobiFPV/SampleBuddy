@@ -3,6 +3,7 @@ import {
   IPC,
   type DeviceProfile,
   type DriveComplianceResult,
+  type DriveEjectResult,
   type DriveInfo,
   type DriveUploadProgressEvent,
   type DriveUploadRequest,
@@ -42,7 +43,8 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: DriveUploadProgressEvent): void => cb(payload)
       ipcRenderer.on(IPC.driveUploadProgress, listener)
       return () => ipcRenderer.removeListener(IPC.driveUploadProgress, listener)
-    }
+    },
+    eject: (driveLetter: string): Promise<DriveEjectResult> => ipcRenderer.invoke(IPC.driveEject, driveLetter)
   }
 }
 

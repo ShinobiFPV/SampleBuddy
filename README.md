@@ -28,13 +28,15 @@ More devices are on the way. If your sampler has a weird, specific rule about fi
 
    ![Formatted output ready to go](docs/screenshots/formatted-output.png)
 
-4. **Send it to a drive.** For USB-drive devices, SampleBuddy detects connected removable drives, checks each one against the profile's requirements (filesystem, capacity, expected folder layout), and only lets you upload once it's actually compliant.
+4. **Send it to a drive.** For USB-drive devices, SampleBuddy detects connected removable drives, checks each one against the profile's requirements (filesystem, capacity, expected folder layout), and only lets you upload once it's actually compliant. Devices that support it (like the SP-404 MKII) can also group samples into a named subfolder inside the required import folder — the device's own import browser can navigate right into it.
 
-   ![Drive detected and confirmed compliant](docs/screenshots/drive-upload.png)
+   ![Drive detected and confirmed compliant, with an optional subfolder name](docs/screenshots/drive-upload.png)
 
 5. **Confirm before it writes anything.** Uploading to the wrong USB stick is the kind of mistake you don't get to undo, so SampleBuddy always shows you exactly what's about to happen before it happens.
 
    ![Confirmation dialog before writing to a drive](docs/screenshots/confirm-upload.png)
+
+6. **Eject when you're done.** Every detected drive gets its own Eject button, using the same safe-eject Windows itself uses — it defers to Windows' own "device is busy" protection rather than force-closing anything, so it won't step on another program still reading from the drive.
 
 For staging-folder devices like the SEQTRAK, there's no drive step — SampleBuddy just gives you a button to pop open the output folder so you can hand it to the manufacturer's own import app.
 

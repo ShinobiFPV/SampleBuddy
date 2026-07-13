@@ -47,6 +47,8 @@ export default function App(): JSX.Element {
   const [uploadProgress, setUploadProgress] = useState<DriveUploadProgressEvent | null>(null)
   const [uploadedFilenames, setUploadedFilenames] = useState<string[] | null>(null)
   const [group, setGroup] = useState('')
+  const [ejectingDriveLetter, setEjectingDriveLetter] = useState<string | null>(null)
+  const [ejectMessage, setEjectMessage] = useState<{ driveLetter: string; message: string } | null>(null)
 
   const selectedProfile = useMemo(
     () => profiles.find((p) => p.id === selectedProfileId),
@@ -192,6 +194,21 @@ export default function App(): JSX.Element {
     setUploadedFilenames(null)
   }
 
+  async function handleEjectDrive(driveLetter: string): Promise<void> {
+    setEjectingDriveLetter(driveLetter)
+    setEjectMessage(null)
+    try {
+      const result = await window.sampleBuddy.drive.eject(driveLetter)
+      if (result.ejected) {
+        await refreshDrives()
+      } else {
+        setEjectMessage({ driveLetter, message: result.message ?? `Couldn't eject ${driveLetter}:.` })
+      }
+    } finally {
+      setEjectingDriveLetter(null)
+    }
+  }
+
   function handleUploadClick(): void {
     if (compliance?.compliant && checkedFilenames.length > 0 && !checkingCompliance) setConfirmOpen(true)
   }
@@ -258,6 +275,9 @@ export default function App(): JSX.Element {
             onUploadClick={handleUploadClick}
             group={group}
             onGroupChange={setGroup}
+            ejectingDriveLetter={ejectingDriveLetter}
+            ejectMessage={ejectMessage}
+            onEjectClick={handleEjectDrive}
           />
         </div>
 

@@ -5,6 +5,7 @@ import { scanFolderForProfile, formatNow } from './audio/pipeline'
 import { listRemovableDrives } from './drive/detect'
 import { checkDriveComplianceById } from './drive/compliance'
 import { uploadToDrive } from './drive/upload'
+import { ejectDrive } from './drive/eject'
 import { createMainWindow } from './windows'
 
 app.setName('SampleBuddy')
@@ -46,6 +47,8 @@ function registerIpc(): void {
       if (!event.sender.isDestroyed()) event.sender.send(IPC.driveUploadProgress, progress)
     })
   )
+
+  ipcMain.handle(IPC.driveEject, (_event, driveLetter: string) => ejectDrive(driveLetter))
 }
 
 if (!app.requestSingleInstanceLock()) {

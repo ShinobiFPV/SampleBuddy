@@ -13,7 +13,8 @@ export const IPC = {
   driveList: 'drive:list',
   driveCheckCompliance: 'drive:checkCompliance',
   driveUpload: 'drive:upload',
-  driveUploadProgress: 'drive:uploadProgress'
+  driveUploadProgress: 'drive:uploadProgress',
+  driveEject: 'drive:eject'
 } as const
 
 export type ComplianceStatus = 'ok' | 'needs-conversion' | 'cannot-comply'
@@ -124,4 +125,9 @@ export interface DriveUploadResult {
   destinationPath: string
   uploaded: string[]
   renamed: Record<string, string>
+}
+
+export interface DriveEjectResult {
+  ejected: boolean
+  message?: string
 }
