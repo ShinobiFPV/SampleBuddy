@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-13
+
 ### Added
 - Community health files: `LICENSE` (MIT), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
+- GitHub Actions release workflow that builds and publishes the Windows installer to GitHub Releases on tagged pushes (`vX.Y.Z`).
+- README installation instructions pointing users at the prebuilt installer instead of a from-source build.
 
 ## [0.1.0] - 2026-07-13
 

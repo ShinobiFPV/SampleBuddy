@@ -40,6 +40,14 @@ More devices are on the way. If your sampler has a weird, specific rule about fi
 
 For staging-folder devices like the SEQTRAK, there's no drive step — SampleBuddy just gives you a button to pop open the output folder so you can hand it to the manufacturer's own import app.
 
+## Installation
+
+Download `SampleBuddy-Setup-<version>.exe` from the [latest release](https://github.com/ShinobiFPV/SampleBuddy/releases/latest), run it, and follow the installer. No dependencies to install first — everything SampleBuddy needs (including FFmpeg) is bundled.
+
+The installer isn't code-signed, so Windows SmartScreen will flag it on first run. Click **More info → Run anyway**.
+
+Windows only, for now — your sampler probably doesn't care what OS made its WAV files, but Explorer-drive integration does.
+
 ## Dev commands
 
 ```
@@ -47,7 +55,7 @@ npm install
 npm run dev       # launch in dev mode
 npm run build     # production build
 npm run pack      # unpacked electron-builder output
-npm run release   # NSIS installer (unpublished)
+npm run release   # NSIS installer (unpublished, local build)
 ```
 
-Windows only, for now — your sampler probably doesn't care what OS made its WAV files, but Explorer-drive integration does.
+Tagged pushes (`vX.Y.Z`) trigger a [GitHub Actions workflow](.github/workflows/release.yml) that builds and publishes the installer to GitHub Releases automatically.
