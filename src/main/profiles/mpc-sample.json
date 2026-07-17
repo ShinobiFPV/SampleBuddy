@@ -1,0 +1,26 @@
+{
+  "id": "mpc-sample",
+  "displayName": "Akai MPC Sample",
+  "manufacturer": "Akai",
+  "transferMethod": "usb-drive",
+  "audio": {
+    "container": "wav",
+    "bitDepth": 16,
+    "sampleRate": 44100,
+    "channels": "keep",
+    "maxDurationSec": 1200
+  },
+  "naming": {
+    "maxLength": 255,
+    "allowedCharsRegex": "^[A-Za-z0-9 _-]+$",
+    "asciiOnly": true
+  },
+  "layout": {
+    "rootFolder": "MPC-Sample/Samples",
+    "filesInRootOnly": true
+  },
+  "drive": {
+    "filesystem": "exFAT"
+  },
+  "userNotes": "Connects as a class-compliant USB-C drive, or format a microSD card exFAT on your computer — the MPC Sample creates its own MPC-Sample/Samples folder the first time it sees the card, and that's where files need to land."
+}

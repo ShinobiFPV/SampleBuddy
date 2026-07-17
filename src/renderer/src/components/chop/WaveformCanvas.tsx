@@ -12,6 +12,31 @@ interface WaveformCanvasProps {
 
 const CANVAS_HEIGHT = 180
 const HANDLE_HIT_RADIUS = 8
+const FLAG_WIDTH = 20
+const FLAG_HEIGHT = 16
+
+/** Small pennant-shaped tag at the top of a marker line — a plain colored
+ *  vertical line reads as "some line" at a glance; the flag with its letter
+ *  is what makes a specific marker identifiable without hovering/zooming. */
+function drawFlag(ctx: CanvasRenderingContext2D, x: number, label: string, color: string): void {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(x, 0)
+  ctx.lineTo(x + FLAG_WIDTH, 0)
+  ctx.lineTo(x + FLAG_WIDTH - 6, FLAG_HEIGHT / 2)
+  ctx.lineTo(x + FLAG_WIDTH, FLAG_HEIGHT)
+  ctx.lineTo(x, FLAG_HEIGHT)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.fillStyle = '#0c0c0c'
+  ctx.font = 'bold 11px "Space Mono", Consolas, monospace'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, x + FLAG_WIDTH / 2 - 2, FLAG_HEIGHT / 2 + 1)
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+}
 
 interface HandleRef {
   regionIndex: number
@@ -87,9 +112,12 @@ export default function WaveformCanvas({
       ctx.fillRect(Math.min(startX, endX), 0, Math.max(1, Math.abs(endX - startX)), CANVAS_HEIGHT)
     })
 
-    // Waveform peaks.
+    // Waveform peaks — a neutral tone, not any of the marker/pair colors
+    // (the first pair's color is the app's own accent yellow, which used to
+    // be this exact stroke color too and made "A/B" markers vanish into the
+    // waveform itself).
     const mid = CANVAS_HEIGHT / 2
-    ctx.strokeStyle = '#ffd633'
+    ctx.strokeStyle = '#8a8f98'
     ctx.beginPath()
     for (let x = 0; x < canvasWidth; x++) {
       const yMin = mid + peaks.min[x] * mid
@@ -99,21 +127,19 @@ export default function WaveformCanvas({
     }
     ctx.stroke()
 
-    // Marker handles + letter labels.
+    // Marker handles + flagged letter labels.
     regions.forEach((region, index) => {
       const color = PAIR_COLORS[index % PAIR_COLORS.length]
       const [startLabel, endLabel] = labelForIndex(index)
 
       const startX = region.startSec * pxPerSec
       ctx.strokeStyle = color
-      ctx.lineWidth = 2
+      ctx.lineWidth = 2.5
       ctx.beginPath()
       ctx.moveTo(startX, 0)
       ctx.lineTo(startX, CANVAS_HEIGHT)
       ctx.stroke()
-      ctx.fillStyle = color
-      ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif'
-      ctx.fillText(startLabel, startX + 3, 12)
+      drawFlag(ctx, startX, startLabel, color)
 
       if (region.endSec !== null) {
         const endX = region.endSec * pxPerSec
@@ -121,7 +147,7 @@ export default function WaveformCanvas({
         ctx.moveTo(endX, 0)
         ctx.lineTo(endX, CANVAS_HEIGHT)
         ctx.stroke()
-        ctx.fillText(endLabel, endX + 3, 12)
+        drawFlag(ctx, endX, endLabel, color)
       }
     })
 

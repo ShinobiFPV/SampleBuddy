@@ -24,6 +24,7 @@ export default function PadGrid({ regions, activePads, onToggle }: PadGridProps)
             disabled={!ready}
             onClick={() => onToggle(index)}
           >
+            <span className="pad-key">{index + 1}</span>
             {formatPairLabel(index)}
           </button>
         )

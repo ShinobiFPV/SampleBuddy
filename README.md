@@ -17,6 +17,7 @@ Think of it as a bouncer for your sample folder. It checks IDs at the door so yo
 | Yamaha SEQTRAK | Staging folder | WAV, 16-bit, 44.1kHz | Import the staging folder with the Yamaha SEQTRAK desktop app — no direct drive transfer. |
 | Alesis Strike Multipad | USB drive (FAT32, ≤32GB) | WAV, 16-bit, 44.1kHz | Files go directly in the drive root — no subfolders. |
 | Roland SP-404 MKII | USB drive / SD card (FAT32) | WAV, 16-bit, 48kHz | Card must be formatted by the SP-404 MKII itself; files go in the `IMPORT` folder. |
+| Akai MPC Sample | USB-C / microSD (exFAT) | WAV, 16-bit, 44.1kHz | Format the microSD card exFAT on your computer; files go in the `MPC-Sample/Samples` folder the device creates on first use. |
 
 More devices are on the way. If your sampler has a weird, specific rule about file naming, it will feel right at home here.
 
@@ -44,10 +45,15 @@ For staging-folder devices like the SEQTRAK, there's no drive step — SampleBud
 
 Got one long take — a drum break, a vocal chant, a field recording — and want to carve it into multiple hardware-ready hits? Switch to **Chop Sample** mode in the header.
 
-1. **Open a file.** SampleBuddy decodes it and draws the waveform.
-2. **Mark your regions.** Click the waveform to drop the next marker in sequence — the first click drops `A` (a region's start), the second drops `B` (its end), the third drops `C`, and so on up to `O`/`P` — eight regions per file. Drag a marker to nudge it, double-click one to delete its whole pair; later letters shuffle down to close the gap.
-3. **Audition your chops.** Each completed region gets its own pad — `AB`, `CD`, `EF`, `GH`, `IJ`, `KL`, `MN`, `OP` — so you can play them back like a sampler, toggling any combination on and off. The ruler above the waveform seeks the full file for a separate Play/Stop transport.
+1. **Open a file.** SampleBuddy decodes it and draws the waveform. Same source formats as the batch flow — WAV, AIFF, MP3, FLAC, OGG.
+2. **Mark your regions.** Click the waveform to drop the next marker in sequence — the first click drops `A` (a region's start), the second drops `B` (its end), the third drops `C`, and so on up to `O`/`P` — eight regions per file, each pair getting its own color and a little flag tag so they're easy to tell apart at a glance. Drag a marker to nudge it, double-click one to delete its whole pair; later letters shuffle down to close the gap.
+
+   ![Waveform with three colored marker pairs and two active pads](docs/screenshots/chop-markers.png)
+
+3. **Audition your chops.** Each completed region gets its own pad — `AB`, `CD`, `EF`, `GH`, `IJ`, `KL`, `MN`, `OP` — so you can play them back like a sampler, toggling any combination on and off with the mouse or with number keys `1`-`8`. The ruler above the waveform seeks the full file for a separate Play/Stop transport.
 4. **Export.** Hit EXPORT CHOPS with your target hardware profile selected and every marked region gets cut, converted, and named for that device through the same pipeline the batch flow uses — chopped files land in the Output panel ready for the same drive-upload step.
+
+   ![Three chopped regions exported and ready in the Output panel](docs/screenshots/chop-export.png)
 
 ## Installation
 

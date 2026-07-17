@@ -39,7 +39,7 @@ export interface DeviceLayout {
 }
 
 export interface DriveRequirements {
-  filesystem: 'FAT32'
+  filesystem: 'FAT32' | 'exFAT'
   maxCapacityGB?: number
 }
 

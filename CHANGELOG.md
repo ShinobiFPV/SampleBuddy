@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-17
+
+### Added
+- Chop Sample mode: open a single file, mark up to 8 regions on its waveform with lettered A/B..O/P start/end markers, audition them on toggleable sampler pads (mouse or number keys 1-8), and export each region through the same per-device conversion/naming pipeline the batch flow uses.
+- Akai MPC Sample device profile (USB-C / microSD, exFAT, files land in the `MPC-Sample/Samples` folder the device creates on first use).
+
+### Changed
+- Switched app typography to Rubik Mono One / Space Mono, matching the ShinTech site.
+
+### Fixed
+- Drive filesystem compliance check is now case-insensitive.
+- Waveform marker flags no longer blend into the waveform's own stroke color.
+
 ## [0.2.0] - 2026-07-13
 
 ### Added

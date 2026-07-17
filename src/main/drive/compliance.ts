@@ -41,7 +41,7 @@ export async function checkDriveCompliance(
     return { compliant: true, reasons: [], destinationPath }
   }
 
-  if (drive.filesystem.toUpperCase() !== profile.drive.filesystem) {
+  if (drive.filesystem.toUpperCase() !== profile.drive.filesystem.toUpperCase()) {
     reasons.push(`Drive is ${drive.filesystem || 'an unknown filesystem'}, needs ${profile.drive.filesystem}`)
   }
 

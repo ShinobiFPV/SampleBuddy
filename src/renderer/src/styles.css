@@ -757,6 +757,7 @@ h3 {
 
 .pad {
   --pad-color: var(--accent);
+  position: relative;
   background: #1a1a1a;
   border: 1px solid var(--pad-color);
   border-radius: 6px;
@@ -778,7 +779,30 @@ h3 {
   cursor: default;
 }
 
+.pad:disabled .pad-key {
+  color: #444;
+  border-color: #333;
+}
+
 .pad-active {
   background: var(--pad-color);
   color: #0c0c0c;
+}
+
+.pad-key {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pad-color);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0px 3px;
+  line-height: 1.4;
+}
+
+.pad-active .pad-key {
+  color: #0c0c0c;
+  border-color: #0c0c0c;
 }

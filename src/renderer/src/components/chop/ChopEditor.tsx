@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../../format'
 import WaveformCanvas from './WaveformCanvas'
 import PadGrid from './PadGrid'
-import type { ChopRegion } from './waveform'
+import { MAX_REGIONS, type ChopRegion } from './waveform'
+
+const KEYBOARD_INPUT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 interface ChopEditorProps {
   sourcePath: string | null
@@ -72,6 +74,25 @@ export default function ChopEditor({
       audioContextRef.current?.close()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Number keys 1-8 trigger pads AB-OP, like a hardware sampler's pad bank.
+  // Kept as a ref so the listener can be attached once (not re-added on
+  // every regions/audioBuffer change) while still calling the latest logic.
+  const handlePadToggleRef = useRef<(index: number) => void>(() => {})
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent): void {
+      if (e.repeat) return
+      const target = e.target as HTMLElement | null
+      if (target && KEYBOARD_INPUT_TAGS.has(target.tagName)) return
+      const num = Number(e.key)
+      if (Number.isInteger(num) && num >= 1 && num <= MAX_REGIONS) {
+        e.preventDefault()
+        handlePadToggleRef.current(num - 1)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   async function handleOpenFile(): Promise<void> {
@@ -172,6 +193,8 @@ export default function ChopEditor({
       })
     }
   }
+
+  handlePadToggleRef.current = handlePadToggle
 
   return (
     <section className="panel chop-panel">
