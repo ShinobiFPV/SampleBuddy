@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import {
   IPC,
+  type ChopRequest,
   type DeviceProfile,
   type DriveComplianceResult,
   type DriveEjectResult,
@@ -20,6 +21,7 @@ const api = {
   },
   dialog: {
     selectSourceFolder: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogSelectSourceFolder),
+    selectSourceFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogSelectSourceFile),
     openPath: (path: string): Promise<string> => ipcRenderer.invoke(IPC.dialogOpenPath, path)
   },
   audio: {
@@ -31,6 +33,14 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: FormatProgressEvent): void => cb(payload)
       ipcRenderer.on(IPC.audioFormatProgress, listener)
       return () => ipcRenderer.removeListener(IPC.audioFormatProgress, listener)
+    },
+    readFileBuffer: (path: string): Promise<Uint8Array> => ipcRenderer.invoke(IPC.audioReadFileBuffer, path),
+    chopAndFormat: (request: ChopRequest): Promise<FormatNowResult> =>
+      ipcRenderer.invoke(IPC.audioChopAndFormat, request),
+    onChopProgress: (cb: (e: FormatProgressEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: FormatProgressEvent): void => cb(payload)
+      ipcRenderer.on(IPC.audioChopProgress, listener)
+      return () => ipcRenderer.removeListener(IPC.audioChopProgress, listener)
     }
   },
   drive: {

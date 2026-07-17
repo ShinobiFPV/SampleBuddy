@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import { IPC, type FormatNowRequest, type DriveUploadRequest } from '../shared/ipc'
+import { readFile } from 'fs/promises'
+import { IPC, type ChopRequest, type FormatNowRequest, type DriveUploadRequest } from '../shared/ipc'
 import { listProfiles } from './profiles'
 import { scanFolderForProfile, formatNow } from './audio/pipeline'
+import { chopAndFormat } from './audio/chop'
 import { listRemovableDrives } from './drive/detect'
 import { checkDriveComplianceById } from './drive/compliance'
 import { uploadToDrive } from './drive/upload'
@@ -49,6 +51,26 @@ function registerIpc(): void {
   )
 
   ipcMain.handle(IPC.driveEject, (_event, driveLetter: string) => ejectDrive(driveLetter))
+
+  ipcMain.handle(IPC.dialogSelectSourceFile, async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openFile'],
+      title: 'Select Audio File',
+      filters: [{ name: 'Audio', extensions: ['wav', 'aiff', 'aif', 'mp3', 'flac', 'ogg'] }]
+    }
+    const result = await (win ? dialog.showOpenDialog(win, options) : dialog.showOpenDialog(options))
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle(IPC.audioReadFileBuffer, (_event, path: string) => readFile(path))
+
+  ipcMain.handle(IPC.audioChopAndFormat, (event, request: ChopRequest) =>
+    chopAndFormat(request, (progress) => {
+      if (!event.sender.isDestroyed()) event.sender.send(IPC.audioChopProgress, progress)
+    })
+  )
 }
 
 if (!app.requestSingleInstanceLock()) {

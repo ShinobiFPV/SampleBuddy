@@ -5,13 +5,22 @@ interface FormatButtonProps {
   formatting: boolean
   progress: FormatProgressEvent | null
   onClick: () => void
+  label?: string
+  busyLabel?: string
 }
 
-export default function FormatButton({ disabled, formatting, progress, onClick }: FormatButtonProps): JSX.Element {
+export default function FormatButton({
+  disabled,
+  formatting,
+  progress,
+  onClick,
+  label = 'FORMAT NOW',
+  busyLabel = 'Formatting…'
+}: FormatButtonProps): JSX.Element {
   return (
     <div className="format-now">
       <button className="btn-format-now" disabled={disabled || formatting} onClick={onClick}>
-        {formatting ? 'Formatting…' : 'FORMAT NOW'}
+        {formatting ? busyLabel : label}
       </button>
       {formatting && progress && (
         <div className="format-progress">

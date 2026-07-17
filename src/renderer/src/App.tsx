@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
+  ChopRegionRequest,
   DeviceProfile,
   DriveComplianceResult,
   DriveInfo,
@@ -10,13 +11,15 @@ import type {
   NamingOptions as NamingOptionsValue,
   ScannedFile
 } from '../../shared/ipc'
-import Header from './components/Header'
+import Header, { type AppMode } from './components/Header'
 import SourcePanel from './components/SourcePanel'
 import NamingOptions from './components/NamingOptions'
 import FormatButton from './components/FormatButton'
 import OutputPanel from './components/OutputPanel'
 import DrivePanel from './components/DrivePanel'
 import ConfirmUploadDialog from './components/ConfirmUploadDialog'
+import ChopEditor from './components/chop/ChopEditor'
+import { formatPairLabel, type ChopRegion } from './components/chop/waveform'
 
 function defaultActionFor(scanned: ScannedFile, existing?: FileAction): FileAction {
   if (existing) return existing
@@ -25,6 +28,7 @@ function defaultActionFor(scanned: ScannedFile, existing?: FileAction): FileActi
 }
 
 export default function App(): JSX.Element {
+  const [mode, setMode] = useState<AppMode>('batch')
   const [profiles, setProfiles] = useState<DeviceProfile[]>([])
   const [selectedProfileId, setSelectedProfileId] = useState<string>('')
   const [sourceDir, setSourceDir] = useState<string | null>(null)
@@ -49,6 +53,11 @@ export default function App(): JSX.Element {
   const [group, setGroup] = useState('')
   const [ejectingDriveLetter, setEjectingDriveLetter] = useState<string | null>(null)
   const [ejectMessage, setEjectMessage] = useState<{ driveLetter: string; message: string } | null>(null)
+
+  const [chopSourcePath, setChopSourcePath] = useState<string | null>(null)
+  const [chopRegions, setChopRegions] = useState<ChopRegion[]>([])
+  const [chopExporting, setChopExporting] = useState(false)
+  const [chopProgress, setChopProgress] = useState<FormatProgressEvent | null>(null)
 
   const selectedProfile = useMemo(
     () => profiles.find((p) => p.id === selectedProfileId),
@@ -181,6 +190,32 @@ export default function App(): JSX.Element {
     }
   }
 
+  async function handleExportChops(): Promise<void> {
+    const completeRegions = chopRegions.filter((r): r is ChopRegion & { endSec: number } => r.endSec !== null)
+    if (!selectedProfileId || !chopSourcePath || completeRegions.length === 0) return
+
+    setChopExporting(true)
+    setChopProgress(null)
+    const unsubscribe = window.sampleBuddy.audio.onChopProgress(setChopProgress)
+    try {
+      const regions: ChopRegionRequest[] = completeRegions.map((region) => {
+        const index = chopRegions.indexOf(region)
+        return { label: formatPairLabel(index), startSec: region.startSec, endSec: region.endSec }
+      })
+      const result = await window.sampleBuddy.audio.chopAndFormat({
+        sourcePath: chopSourcePath,
+        profileId: selectedProfileId,
+        naming,
+        regions
+      })
+      setFormatResult(result)
+      setOutputChecked(Object.fromEntries(result.files.map((f) => [f.filename, true])))
+    } finally {
+      unsubscribe()
+      setChopExporting(false)
+    }
+  }
+
   function handleToggleOutput(filename: string): void {
     setOutputChecked((prev) => ({ ...prev, [filename]: !(prev[filename] ?? true) }))
   }
@@ -235,18 +270,33 @@ export default function App(): JSX.Element {
 
   return (
     <div className="app">
-      <Header profiles={profiles} selectedProfileId={selectedProfileId} onSelectProfile={setSelectedProfileId} />
+      <Header
+        profiles={profiles}
+        selectedProfileId={selectedProfileId}
+        onSelectProfile={setSelectedProfileId}
+        mode={mode}
+        onSelectMode={setMode}
+      />
 
       <main className="main-content">
         <div className="main-columns">
-          <SourcePanel
-            sourceDir={sourceDir}
-            scannedFiles={scannedFiles}
-            loading={scanning}
-            decisions={decisions}
-            onSelectFolder={handleSelectFolder}
-            onDecisionChange={handleDecisionChange}
-          />
+          {mode === 'batch' ? (
+            <SourcePanel
+              sourceDir={sourceDir}
+              scannedFiles={scannedFiles}
+              loading={scanning}
+              decisions={decisions}
+              onSelectFolder={handleSelectFolder}
+              onDecisionChange={handleDecisionChange}
+            />
+          ) : (
+            <ChopEditor
+              sourcePath={chopSourcePath}
+              onSourcePathChange={setChopSourcePath}
+              regions={chopRegions}
+              onRegionsChange={setChopRegions}
+            />
+          )}
           <OutputPanel
             outputDir={formatResult?.outputDir ?? null}
             files={formatResult?.files ?? []}
@@ -281,12 +331,23 @@ export default function App(): JSX.Element {
           />
         </div>
 
-        <FormatButton
-          disabled={scannedFiles.length === 0}
-          formatting={formatting}
-          progress={progress}
-          onClick={handleFormatNow}
-        />
+        {mode === 'batch' ? (
+          <FormatButton
+            disabled={scannedFiles.length === 0}
+            formatting={formatting}
+            progress={progress}
+            onClick={handleFormatNow}
+          />
+        ) : (
+          <FormatButton
+            disabled={!chopSourcePath || chopRegions.every((r) => r.endSec === null)}
+            formatting={chopExporting}
+            progress={chopProgress}
+            onClick={handleExportChops}
+            label="EXPORT CHOPS"
+            busyLabel="Exporting…"
+          />
+        )}
       </main>
 
       {confirmOpen && selectedDrive && compliance && (

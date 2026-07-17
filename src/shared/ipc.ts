@@ -14,7 +14,11 @@ export const IPC = {
   driveCheckCompliance: 'drive:checkCompliance',
   driveUpload: 'drive:upload',
   driveUploadProgress: 'drive:uploadProgress',
-  driveEject: 'drive:eject'
+  driveEject: 'drive:eject',
+  dialogSelectSourceFile: 'dialog:selectSourceFile',
+  audioReadFileBuffer: 'audio:readFileBuffer',
+  audioChopAndFormat: 'audio:chopAndFormat',
+  audioChopProgress: 'audio:chopProgress'
 } as const
 
 export type ComplianceStatus = 'ok' | 'needs-conversion' | 'cannot-comply'
@@ -130,4 +134,19 @@ export interface DriveUploadResult {
 export interface DriveEjectResult {
   ejected: boolean
   message?: string
+}
+
+/** One marked region to cut out of a single source file — `label` is the
+ *  derived pad label (e.g. "AB"), used to build the output filename. */
+export interface ChopRegionRequest {
+  label: string
+  startSec: number
+  endSec: number
+}
+
+export interface ChopRequest {
+  sourcePath: string
+  profileId: string
+  naming: NamingOptions
+  regions: ChopRegionRequest[]
 }

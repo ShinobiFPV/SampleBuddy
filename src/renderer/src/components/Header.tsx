@@ -1,12 +1,22 @@
 import type { DeviceProfile } from '../../../shared/ipc'
 
+export type AppMode = 'batch' | 'chop'
+
 interface HeaderProps {
   profiles: DeviceProfile[]
   selectedProfileId: string
   onSelectProfile: (id: string) => void
+  mode: AppMode
+  onSelectMode: (mode: AppMode) => void
 }
 
-export default function Header({ profiles, selectedProfileId, onSelectProfile }: HeaderProps): JSX.Element {
+export default function Header({
+  profiles,
+  selectedProfileId,
+  onSelectProfile,
+  mode,
+  onSelectMode
+}: HeaderProps): JSX.Element {
   const selected = profiles.find((p) => p.id === selectedProfileId)
 
   return (
@@ -16,6 +26,21 @@ export default function Header({ profiles, selectedProfileId, onSelectProfile }:
           Sample<span className="wordmark-accent">Buddy</span>
         </h1>
         <span className="byline">ShinTech Electronics</span>
+      </div>
+
+      <div className="mode-toggle-row">
+        <button
+          className={`mode-toggle-btn${mode === 'batch' ? ' mode-toggle-active' : ''}`}
+          onClick={() => onSelectMode('batch')}
+        >
+          Batch Format
+        </button>
+        <button
+          className={`mode-toggle-btn${mode === 'chop' ? ' mode-toggle-active' : ''}`}
+          onClick={() => onSelectMode('chop')}
+        >
+          Chop Sample
+        </button>
       </div>
 
       <div className="profile-picker-row">

@@ -40,6 +40,15 @@ More devices are on the way. If your sampler has a weird, specific rule about fi
 
 For staging-folder devices like the SEQTRAK, there's no drive step — SampleBuddy just gives you a button to pop open the output folder so you can hand it to the manufacturer's own import app.
 
+## Chopping a longer file into samples
+
+Got one long take — a drum break, a vocal chant, a field recording — and want to carve it into multiple hardware-ready hits? Switch to **Chop Sample** mode in the header.
+
+1. **Open a file.** SampleBuddy decodes it and draws the waveform.
+2. **Mark your regions.** Click the waveform to drop the next marker in sequence — the first click drops `A` (a region's start), the second drops `B` (its end), the third drops `C`, and so on up to `O`/`P` — eight regions per file. Drag a marker to nudge it, double-click one to delete its whole pair; later letters shuffle down to close the gap.
+3. **Audition your chops.** Each completed region gets its own pad — `AB`, `CD`, `EF`, `GH`, `IJ`, `KL`, `MN`, `OP` — so you can play them back like a sampler, toggling any combination on and off. The ruler above the waveform seeks the full file for a separate Play/Stop transport.
+4. **Export.** Hit EXPORT CHOPS with your target hardware profile selected and every marked region gets cut, converted, and named for that device through the same pipeline the batch flow uses — chopped files land in the Output panel ready for the same drive-upload step.
+
 ## Installation
 
 Download `SampleBuddy-Setup-<version>.exe` from the [latest release](https://github.com/ShinobiFPV/SampleBuddy/releases/latest), run it, and follow the installer. No dependencies to install first — everything SampleBuddy needs (including FFmpeg) is bundled.

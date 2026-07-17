@@ -25,13 +25,19 @@ export interface ConvertOptions {
   sourceDurationSec: number
   profile: DeviceProfile
   truncateToSec?: number
+  /** Seeks into the input before encoding — used by the sample chopper to
+   *  cut a region's start point. Placed after `-i` (not before) so the seek
+   *  is frame-accurate rather than fast-but-approximate; regions are
+   *  user-picked to the sample, so accuracy matters more than speed here. */
+  trimStartSec?: number
   onProgress?: (fractionComplete: number) => void
 }
 
 export function convertFile(opts: ConvertOptions): Promise<void> {
-  const { inputPath, outputPath, sourceDurationSec, profile, truncateToSec, onProgress } = opts
+  const { inputPath, outputPath, sourceDurationSec, profile, truncateToSec, trimStartSec, onProgress } = opts
 
   const args = ['-y', '-i', inputPath]
+  if (trimStartSec) args.push('-ss', String(trimStartSec))
   if (truncateToSec) args.push('-t', String(truncateToSec))
 
   args.push('-ar', String(profile.audio.sampleRate))
