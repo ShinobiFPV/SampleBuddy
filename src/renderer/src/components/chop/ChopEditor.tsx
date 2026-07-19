@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../../format'
 import WaveformCanvas from './WaveformCanvas'
 import PadGrid from './PadGrid'
-import { MAX_REGIONS, type ChopRegion } from './waveform'
+import {
+  MAX_REGIONS,
+  type ChopRegion,
+  type PadControllerMap,
+  type TriggerMode,
+  loadPadSettings,
+  nextTriggerMode,
+  savePadSettings
+} from './waveform'
 
 const KEYBOARD_INPUT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
@@ -26,6 +34,14 @@ export default function ChopEditor({
   const [playheadSec, setPlayheadSec] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [activePads, setActivePads] = useState<Set<number>>(new Set())
+
+  const initialPadSettings = useRef(loadPadSettings()).current
+  const [triggerModes, setTriggerModes] = useState<TriggerMode[]>(initialPadSettings.triggerModes)
+  const [controllerMap, setControllerMap] = useState<(PadControllerMap | null)[]>(
+    initialPadSettings.controllerMap
+  )
+  const [learningPad, setLearningPad] = useState<number | null>(null)
+  const [gamepadConnected, setGamepadConnected] = useState(false)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const transportSourceRef = useRef<AudioBufferSourceNode | null>(null)
@@ -76,10 +92,15 @@ export default function ChopEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    savePadSettings({ triggerModes, controllerMap })
+  }, [triggerModes, controllerMap])
+
   // Number keys 1-8 trigger pads AB-OP, like a hardware sampler's pad bank.
-  // Kept as a ref so the listener can be attached once (not re-added on
-  // every regions/audioBuffer change) while still calling the latest logic.
-  const handlePadToggleRef = useRef<(index: number) => void>(() => {})
+  // Kept as refs so the listeners can be attached once (not re-added on
+  // every regions/audioBuffer/mode change) while still calling the latest logic.
+  const handlePadDownRef = useRef<(index: number) => void>(() => {})
+  const handlePadUpRef = useRef<(index: number) => void>(() => {})
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
       if (e.repeat) return
@@ -88,11 +109,76 @@ export default function ChopEditor({
       const num = Number(e.key)
       if (Number.isInteger(num) && num >= 1 && num <= MAX_REGIONS) {
         e.preventDefault()
-        handlePadToggleRef.current(num - 1)
+        handlePadDownRef.current(num - 1)
+      }
+    }
+    function handleKeyUp(e: KeyboardEvent): void {
+      const target = e.target as HTMLElement | null
+      if (target && KEYBOARD_INPUT_TAGS.has(target.tagName)) return
+      const num = Number(e.key)
+      if (Number.isInteger(num) && num >= 1 && num <= MAX_REGIONS) {
+        handlePadUpRef.current(num - 1)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  // Polls the Gamepad API every frame (it has no change-events of its own)
+  // to edge-detect button presses/releases for both "learn" capture and
+  // dispatching mapped pads — works uniformly for Xbox-style "standard"
+  // mapped pads and raw/generic HID devices (8BitDo Zero 2 included) since
+  // we only ever compare button indices, never rely on semantic layout.
+  const controllerMapRef = useRef(controllerMap)
+  controllerMapRef.current = controllerMap
+  const learningPadRef = useRef(learningPad)
+  learningPadRef.current = learningPad
+  useEffect(() => {
+    let rafId: number
+    const wasPressed = new Map<string, boolean>()
+
+    function poll(): void {
+      const gamepads = navigator.getGamepads()
+      let anyConnected = false
+      for (const gp of gamepads) {
+        if (!gp) continue
+        anyConnected = true
+        for (let buttonIndex = 0; buttonIndex < gp.buttons.length; buttonIndex++) {
+          const key = `${gp.index}:${buttonIndex}`
+          const pressed = gp.buttons[buttonIndex].pressed
+          const was = wasPressed.get(key) ?? false
+          wasPressed.set(key, pressed)
+          if (pressed === was) continue
+
+          if (pressed && learningPadRef.current !== null) {
+            const index = learningPadRef.current
+            setControllerMap((prev) => {
+              const next = [...prev]
+              next[index] = { gamepadId: gp.id, buttonIndex }
+              return next
+            })
+            setLearningPad(null)
+            continue
+          }
+
+          const padIndex = controllerMapRef.current.findIndex(
+            (m) => m && m.gamepadId === gp.id && m.buttonIndex === buttonIndex
+          )
+          if (padIndex === -1) continue
+          if (pressed) handlePadDownRef.current(padIndex)
+          else handlePadUpRef.current(padIndex)
+        }
+      }
+      setGamepadConnected(anyConnected)
+      rafId = requestAnimationFrame(poll)
+    }
+
+    rafId = requestAnimationFrame(poll)
+    return () => cancelAnimationFrame(rafId)
   }, [])
 
   async function handleOpenFile(): Promise<void> {
@@ -154,39 +240,41 @@ export default function ChopEditor({
     setPlayheadSec(sec)
   }
 
-  function handlePadToggle(index: number): void {
+  function stopPad(index: number): void {
+    const existing = padSourcesRef.current.get(index)
+    if (!existing) return
+    existing.onended = null
+    try {
+      existing.stop()
+    } catch {
+      // already stopped
+    }
+    padSourcesRef.current.delete(index)
+    setActivePads((prev) => {
+      if (!prev.has(index)) return prev
+      const next = new Set(prev)
+      next.delete(index)
+      return next
+    })
+  }
+
+  function startPad(index: number): void {
     if (!audioBuffer) return
     const region = regions[index]
     if (!region || region.endSec === null) return
 
-    const existing = padSourcesRef.current.get(index)
-    if (existing) {
-      existing.onended = null
-      try {
-        existing.stop()
-      } catch {
-        // already stopped
-      }
-      padSourcesRef.current.delete(index)
-      setActivePads((prev) => {
-        const next = new Set(prev)
-        next.delete(index)
-        return next
-      })
-      return
-    }
-
+    stopPad(index)
     const ctx = getAudioContext()
     const source = ctx.createBufferSource()
     source.buffer = audioBuffer
     source.connect(ctx.destination)
-    const endSec = region.endSec
-    source.start(0, region.startSec, endSec - region.startSec)
+    source.start(0, region.startSec, region.endSec - region.startSec)
     padSourcesRef.current.set(index, source)
     setActivePads((prev) => new Set(prev).add(index))
     source.onended = () => {
       padSourcesRef.current.delete(index)
       setActivePads((prev) => {
+        if (!prev.has(index)) return prev
         const next = new Set(prev)
         next.delete(index)
         return next
@@ -194,7 +282,50 @@ export default function ChopEditor({
     }
   }
 
-  handlePadToggleRef.current = handlePadToggle
+  function handlePadDown(index: number): void {
+    if (!audioBuffer) return
+    const region = regions[index]
+    if (!region || region.endSec === null) return
+
+    const mode = triggerModesRef.current[index]
+    if (mode === 'gate') {
+      if (!padSourcesRef.current.has(index)) startPad(index)
+    } else if (mode === 'one-shot') {
+      startPad(index)
+    } else {
+      if (padSourcesRef.current.has(index)) stopPad(index)
+      else startPad(index)
+    }
+  }
+
+  function handlePadUp(index: number): void {
+    if (triggerModesRef.current[index] === 'gate') stopPad(index)
+  }
+
+  function handleCycleTriggerMode(index: number): void {
+    setTriggerModes((prev) => {
+      const next = [...prev]
+      next[index] = nextTriggerMode(prev[index])
+      return next
+    })
+  }
+
+  function handleLearnController(index: number): void {
+    setLearningPad((prev) => (prev === index ? null : index))
+  }
+
+  function handleClearController(index: number): void {
+    setControllerMap((prev) => {
+      const next = [...prev]
+      next[index] = null
+      return next
+    })
+  }
+
+  const triggerModesRef = useRef(triggerModes)
+  triggerModesRef.current = triggerModes
+  handlePadDownRef.current = handlePadDown
+  handlePadUpRef.current = handlePadUp
 
   return (
     <section className="panel chop-panel">
@@ -241,9 +372,23 @@ export default function ChopEditor({
                 onChange={(e) => setZoom(Number(e.target.value))}
               />
             </label>
+            <span className={`chop-controller-status${gamepadConnected ? ' chop-controller-connected' : ''}`}>
+              {gamepadConnected ? 'Controller connected' : 'No controller connected'}
+            </span>
           </div>
 
-          <PadGrid regions={regions} activePads={activePads} onToggle={handlePadToggle} />
+          <PadGrid
+            regions={regions}
+            activePads={activePads}
+            triggerModes={triggerModes}
+            controllerMap={controllerMap}
+            learningPad={learningPad}
+            onPadDown={handlePadDown}
+            onPadUp={handlePadUp}
+            onCycleTriggerMode={handleCycleTriggerMode}
+            onLearnController={handleLearnController}
+            onClearController={handleClearController}
+          />
         </>
       )}
     </section>

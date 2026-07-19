@@ -748,11 +748,29 @@ h3 {
   accent-color: var(--accent);
 }
 
+.chop-controller-status {
+  font-size: 11px;
+  color: #666;
+}
+
+.chop-controller-connected {
+  color: var(--accent);
+}
+
 .pad-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 14px;
+}
+
+.pad-wrap {
+  --pad-color: var(--accent);
+  position: relative;
+}
+
+.pad-wrap .pad {
+  width: 100%;
 }
 
 .pad {
@@ -805,4 +823,55 @@ h3 {
 .pad-active .pad-key {
   color: #0c0c0c;
   border-color: #0c0c0c;
+}
+
+.pad-badge {
+  position: absolute;
+  min-width: 14px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  text-align: center;
+  padding: 0px 3px;
+  border-radius: 3px;
+  border: 1px solid var(--pad-color);
+  background: #1a1a1a;
+  color: var(--pad-color);
+  cursor: pointer;
+}
+
+.pad-badge:hover {
+  background: color-mix(in srgb, var(--pad-color) 25%, #1a1a1a);
+}
+
+.pad-mode {
+  top: 4px;
+  right: 5px;
+}
+
+.pad-learn {
+  bottom: 4px;
+  right: 5px;
+}
+
+.pad-learn-active {
+  color: #0c0c0c;
+  background: var(--pad-color);
+  animation: pad-learn-pulse 1s ease-in-out infinite;
+}
+
+.pad-active ~ .pad-badge {
+  color: #0c0c0c;
+  border-color: #0c0c0c;
+}
+
+@keyframes pad-learn-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
