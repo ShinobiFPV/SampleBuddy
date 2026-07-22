@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Per-pad trigger modes (Toggle/Gate/One-shot) on Chop Editor sampler pads, cycled via a badge and persisted per pad in localStorage.
+- Controller mapping ("learn" badge) to bind a physical controller button (Xbox, generic HID joystick, 8BitDo Zero 2) to a chop pad via the Gamepad API, persisted per pad in localStorage.
+- MIDI mapping ("learn" badge) to bind a MIDI note to a chop pad via the Web MIDI API, persisted per pad in localStorage. An Akai MPK Mini MK4 auto-maps its 8 drum pads to the 8 chop pads with no setup; the per-pad MIDI badge overrides the default for that pad or maps any other class-compliant MIDI controller.
+
 ## [0.3.0] - 2026-07-17
 
 ### Added

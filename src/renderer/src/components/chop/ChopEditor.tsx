@@ -4,8 +4,10 @@ import WaveformCanvas from './WaveformCanvas'
 import PadGrid from './PadGrid'
 import {
   MAX_REGIONS,
+  MIDI_CONTROLLER_PROFILES,
   type ChopRegion,
   type PadControllerMap,
+  type PadMidiMap,
   type TriggerMode,
   loadPadSettings,
   nextTriggerMode,
@@ -40,8 +42,12 @@ export default function ChopEditor({
   const [controllerMap, setControllerMap] = useState<(PadControllerMap | null)[]>(
     initialPadSettings.controllerMap
   )
+  const [midiMap, setMidiMap] = useState<(PadMidiMap | null)[]>(initialPadSettings.midiMap)
   const [learningPad, setLearningPad] = useState<number | null>(null)
+  const [learningMidiPad, setLearningMidiPad] = useState<number | null>(null)
   const [gamepadConnected, setGamepadConnected] = useState(false)
+  const [midiSupported, setMidiSupported] = useState(false)
+  const [midiInputNames, setMidiInputNames] = useState<Map<string, string>>(new Map())
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const transportSourceRef = useRef<AudioBufferSourceNode | null>(null)
@@ -93,8 +99,8 @@ export default function ChopEditor({
   }, [])
 
   useEffect(() => {
-    savePadSettings({ triggerModes, controllerMap })
-  }, [triggerModes, controllerMap])
+    savePadSettings({ triggerModes, controllerMap, midiMap })
+  }, [triggerModes, controllerMap, midiMap])
 
   // Number keys 1-8 trigger pads AB-OP, like a hardware sampler's pad bank.
   // Kept as refs so the listeners can be attached once (not re-added on
@@ -179,6 +185,101 @@ export default function ChopEditor({
 
     rafId = requestAnimationFrame(poll)
     return () => cancelAnimationFrame(rafId)
+  }, [])
+
+  // MIDI is event-driven (no Gamepad-style polling needed). A pad's mapping
+  // resolves in two tiers: an explicit learned {inputId, note} always wins;
+  // otherwise, if the sending device matches a known MIDI_CONTROLLER_PROFILES
+  // entry (e.g. an MPK Mini MK4) and that pad has no explicit override, its
+  // default note fires the pad with zero setup.
+  const midiMapRef = useRef(midiMap)
+  midiMapRef.current = midiMap
+  const learningMidiPadRef = useRef(learningMidiPad)
+  learningMidiPadRef.current = learningMidiPad
+  const midiInputNamesRef = useRef(midiInputNames)
+  midiInputNamesRef.current = midiInputNames
+
+  function resolvePadForNote(inputId: string, note: number): number | null {
+    const explicit = midiMapRef.current.findIndex((m) => m && m.inputId === inputId && m.note === note)
+    if (explicit !== -1) return explicit
+
+    const deviceName = midiInputNamesRef.current.get(inputId)
+    if (!deviceName) return null
+    const profile = MIDI_CONTROLLER_PROFILES.find((p) => p.match(deviceName))
+    if (!profile) return null
+    const padIndex = profile.padNotes.indexOf(note)
+    if (padIndex === -1) return null
+    // An explicit mapping on that pad slot (even from a different device)
+    // always takes precedence over the device's default profile note.
+    if (midiMapRef.current[padIndex]) return null
+    return padIndex
+  }
+
+  function handleMidiMessage(event: MIDIMessageEvent): void {
+    const data = event.data
+    if (!data || data.length < 3) return
+    const command = data[0] & 0xf0
+    if (command !== 0x90 && command !== 0x80) return // only note on/off
+
+    const note = data[1]
+    const velocity = data[2]
+    const isPress = command === 0x90 && velocity > 0
+    const inputId = (event.target as MIDIInput).id
+
+    if (isPress && learningMidiPadRef.current !== null) {
+      const index = learningMidiPadRef.current
+      setMidiMap((prev) => {
+        const next = [...prev]
+        next[index] = { inputId, note }
+        return next
+      })
+      setLearningMidiPad(null)
+      return
+    }
+
+    const padIndex = resolvePadForNote(inputId, note)
+    if (padIndex === null) return
+    if (isPress) handlePadDownRef.current(padIndex)
+    else handlePadUpRef.current(padIndex)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    let access: MIDIAccess | null = null
+
+    function attachInputs(midiAccess: MIDIAccess): void {
+      const names = new Map<string, string>()
+      midiAccess.inputs.forEach((input) => {
+        names.set(input.id, input.name ?? input.id)
+        input.onmidimessage = handleMidiMessage
+      })
+      setMidiInputNames(names)
+    }
+
+    navigator
+      .requestMIDIAccess({ sysex: false })
+      .then((midiAccess) => {
+        if (cancelled) return
+        access = midiAccess
+        attachInputs(midiAccess)
+        midiAccess.onstatechange = () => attachInputs(midiAccess)
+        setMidiSupported(true)
+      })
+      .catch((e) => {
+        console.error('MIDI access unavailable — MIDI pad mapping disabled', e)
+        setMidiSupported(false)
+      })
+
+    return () => {
+      cancelled = true
+      if (access) {
+        access.onstatechange = null
+        access.inputs.forEach((input) => {
+          input.onmidimessage = null
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleOpenFile(): Promise<void> {
@@ -322,10 +423,33 @@ export default function ChopEditor({
     })
   }
 
+  function handleLearnMidi(index: number): void {
+    setLearningMidiPad((prev) => (prev === index ? null : index))
+  }
+
+  function handleClearMidi(index: number): void {
+    setMidiMap((prev) => {
+      const next = [...prev]
+      next[index] = null
+      return next
+    })
+  }
+
   const triggerModesRef = useRef(triggerModes)
   triggerModesRef.current = triggerModes
   handlePadDownRef.current = handlePadDown
   handlePadUpRef.current = handlePadUp
+
+  // Per-pad default note from a connected known-profile device (e.g. an MPK
+  // Mini MK4), shown in the UI only where no explicit mapping already wins.
+  const midiDefaults = Array.from({ length: MAX_REGIONS }, (_, index) => {
+    if (midiMap[index]) return null
+    for (const name of midiInputNames.values()) {
+      const profile = MIDI_CONTROLLER_PROFILES.find((p) => p.match(name))
+      if (profile) return profile.padNotes[index] ?? null
+    }
+    return null
+  })
 
   return (
     <section className="panel chop-panel">
@@ -375,6 +499,11 @@ export default function ChopEditor({
             <span className={`chop-controller-status${gamepadConnected ? ' chop-controller-connected' : ''}`}>
               {gamepadConnected ? 'Controller connected' : 'No controller connected'}
             </span>
+            {midiSupported && (
+              <span className={`chop-controller-status${midiInputNames.size > 0 ? ' chop-controller-connected' : ''}`}>
+                {midiInputNames.size > 0 ? 'MIDI connected' : 'No MIDI device connected'}
+              </span>
+            )}
           </div>
 
           <PadGrid
@@ -382,12 +511,17 @@ export default function ChopEditor({
             activePads={activePads}
             triggerModes={triggerModes}
             controllerMap={controllerMap}
+            midiMap={midiMap}
+            midiDefaults={midiDefaults}
             learningPad={learningPad}
+            learningMidiPad={learningMidiPad}
             onPadDown={handlePadDown}
             onPadUp={handlePadUp}
             onCycleTriggerMode={handleCycleTriggerMode}
             onLearnController={handleLearnController}
             onClearController={handleClearController}
+            onLearnMidi={handleLearnMidi}
+            onClearMidi={handleClearMidi}
           />
         </>
       )}

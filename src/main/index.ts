@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, session, shell } from 'electron'
 import { readFile } from 'fs/promises'
 import { IPC, type ChopRequest, type FormatNowRequest, type DriveUploadRequest } from '../shared/ipc'
 import { listProfiles } from './profiles'
@@ -88,6 +88,18 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(() => {
+    // Electron denies all permission requests by default — the Chop Editor's
+    // MIDI controller mapping needs navigator.requestMIDIAccess() to resolve.
+    // Electron's Chromium build routes navigator.requestMIDIAccess() through
+    // the 'midiSysex' permission even when called with { sysex: false } — the
+    // renderer still only requests the non-sysex API, this just unblocks it.
+    session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+      callback(permission === 'midi' || permission === 'midiSysex')
+    })
+    session.defaultSession.setPermissionCheckHandler(
+      (_wc, permission) => permission === 'midi' || permission === 'midiSysex'
+    )
+
     registerIpc()
     createMainWindow()
 

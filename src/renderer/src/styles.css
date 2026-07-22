@@ -855,10 +855,20 @@ h3 {
   right: 5px;
 }
 
+.pad-learn-midi {
+  bottom: 4px;
+  left: 5px;
+}
+
 .pad-learn-active {
   color: #0c0c0c;
   background: var(--pad-color);
   animation: pad-learn-pulse 1s ease-in-out infinite;
+}
+
+.pad-learn-default {
+  opacity: 0.55;
+  font-style: italic;
 }
 
 .pad-active ~ .pad-badge {

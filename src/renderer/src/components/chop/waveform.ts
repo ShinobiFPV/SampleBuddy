@@ -80,9 +80,44 @@ export interface PadControllerMap {
   buttonIndex: number
 }
 
+/** Identifies a physical MIDI note mapped to a pad. Keyed by the Web MIDI
+ *  API's `id` string for the input port, same rationale as PadControllerMap —
+ *  connection order isn't stable, the port id is (for a given device/port). */
+export interface PadMidiMap {
+  inputId: string
+  note: number
+}
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+/** Renders a MIDI note number as a name+octave, e.g. 36 -> "C1", for badges. */
+export function noteName(note: number): string {
+  const name = NOTE_NAMES[note % 12]
+  const octave = Math.floor(note / 12) - 1
+  return `${name}${octave}`
+}
+
+interface MidiControllerProfile {
+  match: (deviceName: string) => boolean
+  /** Note numbers for pads 0-7, index-aligned to the chop pad grid. */
+  padNotes: number[]
+}
+
+/** Known controllers that should "just work" with no manual MIDI learning.
+ *  Akai MPK Mini MK4 ships its 8 drum pads sending notes 36-43 (C1-G1) on
+ *  the default PAD bank — the standard Akai/GM drum convention. If a unit's
+ *  firmware/preset differs, the per-pad MIDI learn badge overrides this. */
+export const MIDI_CONTROLLER_PROFILES: MidiControllerProfile[] = [
+  {
+    match: (name) => /mpk mini mk4/i.test(name),
+    padNotes: [36, 37, 38, 39, 40, 41, 42, 43]
+  }
+]
+
 export interface PadSettings {
   triggerModes: TriggerMode[]
   controllerMap: (PadControllerMap | null)[]
+  midiMap: (PadMidiMap | null)[]
 }
 
 const PAD_SETTINGS_KEY = 'sampleBuddy.chop.padSettings.v1'
@@ -90,13 +125,15 @@ const PAD_SETTINGS_KEY = 'sampleBuddy.chop.padSettings.v1'
 function defaultPadSettings(): PadSettings {
   return {
     triggerModes: Array.from({ length: MAX_REGIONS }, () => 'toggle'),
-    controllerMap: Array.from({ length: MAX_REGIONS }, () => null)
+    controllerMap: Array.from({ length: MAX_REGIONS }, () => null),
+    midiMap: Array.from({ length: MAX_REGIONS }, () => null)
   }
 }
 
-/** Loads per-pad trigger mode / controller mapping preferences saved by
- *  savePadSettings. Falls back to all-toggle/all-unmapped for anything
- *  missing or malformed, so old or hand-edited storage can't crash the app. */
+/** Loads per-pad trigger mode / controller / MIDI mapping preferences saved
+ *  by savePadSettings. Falls back to all-toggle/all-unmapped for anything
+ *  missing or malformed, so old or hand-edited storage can't crash the app —
+ *  this also covers blobs saved before midiMap existed. */
 export function loadPadSettings(): PadSettings {
   const fallback = defaultPadSettings()
   try {
@@ -108,7 +145,8 @@ export function loadPadSettings(): PadSettings {
         const mode = parsed.triggerModes?.[i]
         return mode && (TRIGGER_MODES as string[]).includes(mode) ? mode : 'toggle'
       }),
-      controllerMap: Array.from({ length: MAX_REGIONS }, (_, i) => parsed.controllerMap?.[i] ?? null)
+      controllerMap: Array.from({ length: MAX_REGIONS }, (_, i) => parsed.controllerMap?.[i] ?? null),
+      midiMap: Array.from({ length: MAX_REGIONS }, (_, i) => parsed.midiMap?.[i] ?? null)
     }
   } catch {
     return fallback
