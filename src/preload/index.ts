@@ -12,6 +12,10 @@ import {
   type FormatNowRequest,
   type FormatNowResult,
   type FormatProgressEvent,
+  type InstrumentDeviceInfo,
+  type InstrumentMidiEvent,
+  type InstrumentStartRequest,
+  type InstrumentStartResult,
   type RecordDeviceInfo,
   type RecordLevelEvent,
   type RecordStartRequest,
@@ -27,6 +31,7 @@ const api = {
   dialog: {
     selectSourceFolder: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogSelectSourceFolder),
     selectSourceFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogSelectSourceFile),
+    selectVst3File: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogSelectVst3File),
     openPath: (path: string): Promise<string> => ipcRenderer.invoke(IPC.dialogOpenPath, path)
   },
   audio: {
@@ -57,6 +62,17 @@ const api = {
       ipcRenderer.on(IPC.audioRecordLevel, listener)
       return () => ipcRenderer.removeListener(IPC.audioRecordLevel, listener)
     }
+  },
+  instrument: {
+    listDevices: (): Promise<InstrumentDeviceInfo[]> => ipcRenderer.invoke(IPC.instrumentListDevices),
+    start: (request: InstrumentStartRequest): Promise<InstrumentStartResult> =>
+      ipcRenderer.invoke(IPC.instrumentStart, request),
+    stop: (): Promise<void> => ipcRenderer.invoke(IPC.instrumentStop),
+    // Fire-and-forget — can fire dozens of times a second while playing, a
+    // response per note buys nothing (the only ipcRenderer.send in this app).
+    sendMidiEvent: (event: InstrumentMidiEvent): void => ipcRenderer.send(IPC.instrumentMidiEvent, event),
+    captureStart: (): Promise<void> => ipcRenderer.invoke(IPC.instrumentCaptureStart),
+    captureStop: (): Promise<RecordStopResult> => ipcRenderer.invoke(IPC.instrumentCaptureStop)
   },
   drive: {
     list: (): Promise<DriveInfo[]> => ipcRenderer.invoke(IPC.driveList),

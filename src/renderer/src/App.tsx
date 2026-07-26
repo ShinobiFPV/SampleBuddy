@@ -22,6 +22,7 @@ import ChopEditor from './components/chop/ChopEditor'
 import { formatPairLabel, type ChopRegion } from './components/chop/waveform'
 import RecordPanel from './components/record/RecordPanel'
 import PlaybackEditor from './components/playback/PlaybackEditor'
+import InstrumentPanel from './components/instrument/InstrumentPanel'
 
 function defaultActionFor(scanned: ScannedFile, existing?: FileAction): FileAction {
   if (existing) return existing
@@ -306,8 +307,10 @@ export default function App(): JSX.Element {
             />
           ) : mode === 'record' ? (
             <RecordPanel onSendToChop={handleSendRecordingToChop} />
-          ) : (
+          ) : mode === 'playback' ? (
             <PlaybackEditor />
+          ) : (
+            <InstrumentPanel onSendToChop={handleSendRecordingToChop} />
           )}
           <OutputPanel
             outputDir={formatResult?.outputDir ?? null}

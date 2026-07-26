@@ -20,13 +20,15 @@ Windows only, for now — see the README for why.
 
 No `electron-rebuild`/`install-app-deps` step is needed or run — `audify` targets N-API, which is ABI-stable across Node and Electron, so the module builds once against the host Node and loads fine in Electron as-is. (`electron-builder install-app-deps` used to be wired as a `postinstall` step here; it was removed because its native-module rebuild path assumes `node-gyp`/`binding.gyp`, and audify uses `cmake-js`/`CMakeLists.txt` instead — running it corrupts the working build rather than helping.)
 
-### `native/vst-host/` — VST3 hosting spike
+### `native/vst-host/` — VST3 instrument hosting (Instrument page)
 
-`native/vst-host/` is a standalone CMake/JUCE project, not part of the npm/electron-builder build — it's a feasibility spike for eventual VST3 plugin hosting (loading NI Kontakt, showing its native editor window, driving it with MIDI), kept separate until it's proven out into a real feature. It needs the same CMake + Visual Studio Build Tools prerequisites as `audify` above, plus:
+`native/vst-host/` is a standalone CMake/JUCE project, not part of the npm/electron-builder build (it's compiled separately and spawned as a child process — see `src/main/audio/instrumentHost.ts`). It backs the Instrument page: loading a VST3 (NI Kontakt is the one that matters, but any `.vst3` works), showing its native editor window, driving it with MIDI from any connected input, and capturing its output as a sample. It needs the same CMake + Visual Studio Build Tools prerequisites as `audify` above, plus:
 
-- **Internet access on first configure** — `cmake -S . -B build` FetchContents the [JUCE](https://github.com/juce-framework/JUCE) framework (pinned tag, ~1-2GB) automatically; no manual JUCE install needed.
+- **Internet access on first configure** — `cmake -S . -B build` FetchContents the [JUCE](https://github.com/juce-framework/JUCE) framework (pinned tag, ~1-2GB) automatically; no manual JUCE install needed. JUCE also vendors the small ASIO SDK header subset it needs directly (Steinberg re-licensed those as GPLv3/MIT-dual in 2025) — no separate ASIO SDK download either.
 
-Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake --build build --config Release --target VstHostSpike`. Since a VST3 plugin's editor is a native window, Electron can't embed it directly — this spike (and any feature built on it) always shows the plugin's GUI as its own separate floating OS window, driven out-of-process from the JUCE host via a simple stdin protocol (see `Source/Main.cpp` and `scripts/spawn-test.mjs`).
+Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake --build build --config Release --target VstHost`. Since a VST3 plugin's editor is a native window, Electron can't embed it directly — the host always shows the plugin's GUI as its own separate floating OS window, driven out-of-process via a simple stdin protocol (see `Source/Main.cpp` and `scripts/spawn-test.mjs`).
+
+**Licensing**: `native/vst-host/` links JUCE's ASIO support, which pulls in Steinberg's GPLv3-licensed ASIO headers — so this component is GPLv3 (`native/vst-host/LICENSE`), separate from the rest of SampleBuddy (MIT). It stays a genuinely separate process, talking to SampleBuddy only over stdin/stdout/exit-code and never linked into SampleBuddy's own binary — the same "separate program invoked as a subprocess" pattern already used for `ffmpeg`. See `native/vst-host/README.md` for the full rationale.
 
 ## Making changes
 

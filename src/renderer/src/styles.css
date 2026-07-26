@@ -1002,3 +1002,18 @@ h3 {
   border-color: var(--error);
   color: var(--error);
 }
+
+/* Instrument page */
+.instrument-plugin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.instrument-plugin-row .source-dir-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

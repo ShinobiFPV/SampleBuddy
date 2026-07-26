@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Record mode: capture audio from any ASIO input device (via `audify`/RtAudio) with a live level meter, then send the recording straight into the Chop Editor. Built for low-latency ASIO specifically, not WASAPI — see CONTRIBUTING.md for the build prerequisites this adds.
 - Playback page: assign a whole sample file to each of 8 pads (independent of the Chop Editor's loaded file) and audition them the same way — mouse, keys 1-8, mapped controller button, or mapped/default-profile MIDI note, with the same trigger-mode and learn/clear UI. Pad hardware-mapping logic is now shared between Chop and Playback via a common hook.
 - Knob-driven per-pad gain trim: any of a connected MIDI device's knobs can be "learned" (or, for an Akai MPK Mini MK4, used out of the box via a default CC profile) to trim a pad's playback volume live, on both the Chop and Playback pages.
+- Instrument page: load a VST3 plugin (NI Kontakt in particular) and play it live from any connected MIDI device's full keybed, through a chosen ASIO output device, then capture the performance straight to a WAV and send it to the Chop Editor — the same handoff Record mode already has. Hosted by a new standalone native component (`native/vst-host/`, GPLv3-licensed and built on JUCE, kept as a separate out-of-process executable — see CONTRIBUTING.md) since a plugin's editor is a native window Electron can't embed.
 
 ## [0.3.0] - 2026-07-17
 

@@ -22,7 +22,14 @@ export const IPC = {
   audioListInputDevices: 'audio:listInputDevices',
   audioRecordStart: 'audio:recordStart',
   audioRecordStop: 'audio:recordStop',
-  audioRecordLevel: 'audio:recordLevel'
+  audioRecordLevel: 'audio:recordLevel',
+  dialogSelectVst3File: 'dialog:selectVst3File',
+  instrumentListDevices: 'instrument:listDevices',
+  instrumentStart: 'instrument:start',
+  instrumentStop: 'instrument:stop',
+  instrumentMidiEvent: 'instrument:midiEvent',
+  instrumentCaptureStart: 'instrument:captureStart',
+  instrumentCaptureStop: 'instrument:captureStop'
 } as const
 
 export type ComplianceStatus = 'ok' | 'needs-conversion' | 'cannot-comply'
@@ -180,4 +187,25 @@ export interface RecordLevelEvent {
 export interface RecordStopResult {
   filePath: string
   durationSec: number
+}
+
+/** An ASIO output device, as reported by the native VST host (via JUCE). */
+export interface InstrumentDeviceInfo {
+  name: string
+}
+
+export interface InstrumentStartRequest {
+  pluginPath: string
+  deviceName: string
+}
+
+export type InstrumentStartResult = { ok: true } | { ok: false; error: string }
+
+/** One note event, forwarded verbatim from a connected MIDI input to the
+ *  loaded plugin — sent fire-and-forget (see preload's instrumentMidiEvent)
+ *  since it can fire dozens of times a second while playing. */
+export interface InstrumentMidiEvent {
+  note: number
+  velocity: number
+  on: boolean
 }
