@@ -3,6 +3,7 @@ dist/
 out/
 release/
 .vite/
+native/vst-host/build/
 *.log
 *.tsbuildinfo
 .DS_Store

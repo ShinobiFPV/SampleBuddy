@@ -20,6 +20,14 @@ Windows only, for now — see the README for why.
 
 No `electron-rebuild`/`install-app-deps` step is needed or run — `audify` targets N-API, which is ABI-stable across Node and Electron, so the module builds once against the host Node and loads fine in Electron as-is. (`electron-builder install-app-deps` used to be wired as a `postinstall` step here; it was removed because its native-module rebuild path assumes `node-gyp`/`binding.gyp`, and audify uses `cmake-js`/`CMakeLists.txt` instead — running it corrupts the working build rather than helping.)
 
+### `native/vst-host/` — VST3 hosting spike
+
+`native/vst-host/` is a standalone CMake/JUCE project, not part of the npm/electron-builder build — it's a feasibility spike for eventual VST3 plugin hosting (loading NI Kontakt, showing its native editor window, driving it with MIDI), kept separate until it's proven out into a real feature. It needs the same CMake + Visual Studio Build Tools prerequisites as `audify` above, plus:
+
+- **Internet access on first configure** — `cmake -S . -B build` FetchContents the [JUCE](https://github.com/juce-framework/JUCE) framework (pinned tag, ~1-2GB) automatically; no manual JUCE install needed.
+
+Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake --build build --config Release --target VstHostSpike`. Since a VST3 plugin's editor is a native window, Electron can't embed it directly — this spike (and any feature built on it) always shows the plugin's GUI as its own separate floating OS window, driven out-of-process from the JUCE host via a simple stdin protocol (see `Source/Main.cpp` and `scripts/spawn-test.mjs`).
+
 ## Making changes
 
 1. Fork the repo and create a branch off `master`.
