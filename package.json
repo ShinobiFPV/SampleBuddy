@@ -72,6 +72,16 @@
       "**/node_modules/ffmpeg-static/**",
       "**/node_modules/ffprobe-static/**",
       "**/node_modules/audify/build/Release/**"
+    ],
+    "extraResources": [
+      {
+        "from": "native/vst-host/build/VstHost_artefacts/Release/SampleBuddy VST Host.exe",
+        "to": "vst-host/SampleBuddy VST Host.exe"
+      },
+      {
+        "from": "native/vst-host/LICENSE",
+        "to": "vst-host/LICENSE"
+      }
     ]
   }
 }

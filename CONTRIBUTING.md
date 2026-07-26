@@ -30,6 +30,8 @@ Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake -
 
 **Licensing**: `native/vst-host/` links JUCE's ASIO support, which pulls in Steinberg's GPLv3-licensed ASIO headers — so this component is GPLv3 (`native/vst-host/LICENSE`), separate from the rest of SampleBuddy (MIT). It stays a genuinely separate process, talking to SampleBuddy only over stdin/stdout/exit-code and never linked into SampleBuddy's own binary — the same "separate program invoked as a subprocess" pattern already used for `ffmpeg`. See `native/vst-host/README.md` for the full rationale.
 
+**Packaging**: `npm run release` bundles the built exe (and `LICENSE`) into the installer via `build.extraResources` in `package.json`, landing at `resources/vst-host/` in the installed app (see `src/main/audio/instrumentPaths.ts` for how the main process resolves this at runtime vs. the dev-mode CMake build path). This means `native/vst-host/` **must already be built** (per the steps above) before running `npm run release` — electron-builder will fail with a missing-file error otherwise, since unlike `audify`/`ffmpeg` there's no npm package to fall back on.
+
 ## Making changes
 
 1. Fork the repo and create a branch off `master`.
