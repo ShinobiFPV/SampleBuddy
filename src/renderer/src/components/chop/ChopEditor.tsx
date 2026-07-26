@@ -1,20 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../../format'
 import WaveformCanvas from './WaveformCanvas'
-import PadGrid from './PadGrid'
-import {
-  MAX_REGIONS,
-  MIDI_CONTROLLER_PROFILES,
-  type ChopRegion,
-  type PadControllerMap,
-  type PadMidiMap,
-  type TriggerMode,
-  loadPadSettings,
-  nextTriggerMode,
-  savePadSettings
-} from './waveform'
-
-const KEYBOARD_INPUT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
+import PadGrid from '../../pads/PadGrid'
+import { usePadController } from '../../pads/usePadController'
+import { MAX_REGIONS, type ChopRegion, formatPairLabel } from './waveform'
 
 interface ChopEditorProps {
   sourcePath: string | null
@@ -37,21 +26,10 @@ export default function ChopEditor({
   const [zoom, setZoom] = useState(1)
   const [activePads, setActivePads] = useState<Set<number>>(new Set())
 
-  const initialPadSettings = useRef(loadPadSettings()).current
-  const [triggerModes, setTriggerModes] = useState<TriggerMode[]>(initialPadSettings.triggerModes)
-  const [controllerMap, setControllerMap] = useState<(PadControllerMap | null)[]>(
-    initialPadSettings.controllerMap
-  )
-  const [midiMap, setMidiMap] = useState<(PadMidiMap | null)[]>(initialPadSettings.midiMap)
-  const [learningPad, setLearningPad] = useState<number | null>(null)
-  const [learningMidiPad, setLearningMidiPad] = useState<number | null>(null)
-  const [gamepadConnected, setGamepadConnected] = useState(false)
-  const [midiSupported, setMidiSupported] = useState(false)
-  const [midiInputNames, setMidiInputNames] = useState<Map<string, string>>(new Map())
-
   const audioContextRef = useRef<AudioContext | null>(null)
   const transportSourceRef = useRef<AudioBufferSourceNode | null>(null)
   const padSourcesRef = useRef<Map<number, AudioBufferSourceNode>>(new Map())
+  const padGainNodesRef = useRef<Map<number, GainNode>>(new Map())
   const rafRef = useRef<number | null>(null)
 
   function getAudioContext(): AudioContext {
@@ -86,6 +64,8 @@ export default function ChopEditor({
       }
     }
     padSourcesRef.current.clear()
+    for (const gain of padGainNodesRef.current.values()) gain.disconnect()
+    padGainNodesRef.current.clear()
     setActivePads(new Set())
   }
 
@@ -98,194 +78,7 @@ export default function ChopEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    savePadSettings({ triggerModes, controllerMap, midiMap })
-  }, [triggerModes, controllerMap, midiMap])
-
-  // Number keys 1-8 trigger pads AB-OP, like a hardware sampler's pad bank.
-  // Kept as refs so the listeners can be attached once (not re-added on
-  // every regions/audioBuffer/mode change) while still calling the latest logic.
-  const handlePadDownRef = useRef<(index: number) => void>(() => {})
-  const handlePadUpRef = useRef<(index: number) => void>(() => {})
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent): void {
-      if (e.repeat) return
-      const target = e.target as HTMLElement | null
-      if (target && KEYBOARD_INPUT_TAGS.has(target.tagName)) return
-      const num = Number(e.key)
-      if (Number.isInteger(num) && num >= 1 && num <= MAX_REGIONS) {
-        e.preventDefault()
-        handlePadDownRef.current(num - 1)
-      }
-    }
-    function handleKeyUp(e: KeyboardEvent): void {
-      const target = e.target as HTMLElement | null
-      if (target && KEYBOARD_INPUT_TAGS.has(target.tagName)) return
-      const num = Number(e.key)
-      if (Number.isInteger(num) && num >= 1 && num <= MAX_REGIONS) {
-        handlePadUpRef.current(num - 1)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
-    }
-  }, [])
-
-  // Polls the Gamepad API every frame (it has no change-events of its own)
-  // to edge-detect button presses/releases for both "learn" capture and
-  // dispatching mapped pads — works uniformly for Xbox-style "standard"
-  // mapped pads and raw/generic HID devices (8BitDo Zero 2 included) since
-  // we only ever compare button indices, never rely on semantic layout.
-  const controllerMapRef = useRef(controllerMap)
-  controllerMapRef.current = controllerMap
-  const learningPadRef = useRef(learningPad)
-  learningPadRef.current = learningPad
-  useEffect(() => {
-    let rafId: number
-    const wasPressed = new Map<string, boolean>()
-
-    function poll(): void {
-      const gamepads = navigator.getGamepads()
-      let anyConnected = false
-      for (const gp of gamepads) {
-        if (!gp) continue
-        anyConnected = true
-        for (let buttonIndex = 0; buttonIndex < gp.buttons.length; buttonIndex++) {
-          const key = `${gp.index}:${buttonIndex}`
-          const pressed = gp.buttons[buttonIndex].pressed
-          const was = wasPressed.get(key) ?? false
-          wasPressed.set(key, pressed)
-          if (pressed === was) continue
-
-          if (pressed && learningPadRef.current !== null) {
-            const index = learningPadRef.current
-            setControllerMap((prev) => {
-              const next = [...prev]
-              next[index] = { gamepadId: gp.id, buttonIndex }
-              return next
-            })
-            setLearningPad(null)
-            continue
-          }
-
-          const padIndex = controllerMapRef.current.findIndex(
-            (m) => m && m.gamepadId === gp.id && m.buttonIndex === buttonIndex
-          )
-          if (padIndex === -1) continue
-          if (pressed) handlePadDownRef.current(padIndex)
-          else handlePadUpRef.current(padIndex)
-        }
-      }
-      setGamepadConnected(anyConnected)
-      rafId = requestAnimationFrame(poll)
-    }
-
-    rafId = requestAnimationFrame(poll)
-    return () => cancelAnimationFrame(rafId)
-  }, [])
-
-  // MIDI is event-driven (no Gamepad-style polling needed). A pad's mapping
-  // resolves in two tiers: an explicit learned {inputId, note} always wins;
-  // otherwise, if the sending device matches a known MIDI_CONTROLLER_PROFILES
-  // entry (e.g. an MPK Mini MK4) and that pad has no explicit override, its
-  // default note fires the pad with zero setup.
-  const midiMapRef = useRef(midiMap)
-  midiMapRef.current = midiMap
-  const learningMidiPadRef = useRef(learningMidiPad)
-  learningMidiPadRef.current = learningMidiPad
-  const midiInputNamesRef = useRef(midiInputNames)
-  midiInputNamesRef.current = midiInputNames
-
-  function resolvePadForNote(inputId: string, note: number): number | null {
-    const explicit = midiMapRef.current.findIndex((m) => m && m.inputId === inputId && m.note === note)
-    if (explicit !== -1) return explicit
-
-    const deviceName = midiInputNamesRef.current.get(inputId)
-    if (!deviceName) return null
-    const profile = MIDI_CONTROLLER_PROFILES.find((p) => p.match(deviceName))
-    if (!profile) return null
-    const padIndex = profile.padNotes.indexOf(note)
-    if (padIndex === -1) return null
-    // An explicit mapping on that pad slot (even from a different device)
-    // always takes precedence over the device's default profile note.
-    if (midiMapRef.current[padIndex]) return null
-    return padIndex
-  }
-
-  function handleMidiMessage(event: MIDIMessageEvent): void {
-    const data = event.data
-    if (!data || data.length < 3) return
-    const command = data[0] & 0xf0
-    if (command !== 0x90 && command !== 0x80) return // only note on/off
-
-    const note = data[1]
-    const velocity = data[2]
-    const isPress = command === 0x90 && velocity > 0
-    const inputId = (event.target as MIDIInput).id
-
-    if (isPress && learningMidiPadRef.current !== null) {
-      const index = learningMidiPadRef.current
-      setMidiMap((prev) => {
-        const next = [...prev]
-        next[index] = { inputId, note }
-        return next
-      })
-      setLearningMidiPad(null)
-      return
-    }
-
-    const padIndex = resolvePadForNote(inputId, note)
-    if (padIndex === null) return
-    if (isPress) handlePadDownRef.current(padIndex)
-    else handlePadUpRef.current(padIndex)
-  }
-
-  useEffect(() => {
-    let cancelled = false
-    let access: MIDIAccess | null = null
-
-    function attachInputs(midiAccess: MIDIAccess): void {
-      const names = new Map<string, string>()
-      midiAccess.inputs.forEach((input) => {
-        names.set(input.id, input.name ?? input.id)
-        input.onmidimessage = handleMidiMessage
-      })
-      setMidiInputNames(names)
-    }
-
-    navigator
-      .requestMIDIAccess({ sysex: false })
-      .then((midiAccess) => {
-        if (cancelled) return
-        access = midiAccess
-        attachInputs(midiAccess)
-        midiAccess.onstatechange = () => attachInputs(midiAccess)
-        setMidiSupported(true)
-      })
-      .catch((e) => {
-        console.error('MIDI access unavailable — MIDI pad mapping disabled', e)
-        setMidiSupported(false)
-      })
-
-    return () => {
-      cancelled = true
-      if (access) {
-        access.onstatechange = null
-        access.inputs.forEach((input) => {
-          input.onmidimessage = null
-        })
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function handleOpenFile(): Promise<void> {
-    const path = await window.sampleBuddy.dialog.selectSourceFile()
-    if (!path) return
-
+  async function loadFile(path: string): Promise<void> {
     setLoading(true)
     setError(null)
     try {
@@ -307,6 +100,21 @@ export default function ChopEditor({
       setLoading(false)
     }
   }
+
+  async function handleOpenFile(): Promise<void> {
+    const path = await window.sampleBuddy.dialog.selectSourceFile()
+    if (!path) return
+    await loadFile(path)
+  }
+
+  // Handles both a fresh mount landing on an already-set sourcePath (e.g.
+  // handed off from Record mode) and returning to Chop mode after having
+  // switched away — audioBuffer is local state and doesn't survive a
+  // remount, so it needs reloading from the still-known path either way.
+  useEffect(() => {
+    if (sourcePath) loadFile(sourcePath)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handlePlay(): void {
     if (!audioBuffer) return
@@ -351,6 +159,8 @@ export default function ChopEditor({
       // already stopped
     }
     padSourcesRef.current.delete(index)
+    padGainNodesRef.current.get(index)?.disconnect()
+    padGainNodesRef.current.delete(index)
     setActivePads((prev) => {
       if (!prev.has(index)) return prev
       const next = new Set(prev)
@@ -367,13 +177,18 @@ export default function ChopEditor({
     stopPad(index)
     const ctx = getAudioContext()
     const source = ctx.createBufferSource()
+    const gain = ctx.createGain()
+    gain.gain.value = padGains[index] ?? 1
     source.buffer = audioBuffer
-    source.connect(ctx.destination)
+    source.connect(gain)
+    gain.connect(ctx.destination)
     source.start(0, region.startSec, region.endSec - region.startSec)
     padSourcesRef.current.set(index, source)
+    padGainNodesRef.current.set(index, gain)
     setActivePads((prev) => new Set(prev).add(index))
     source.onended = () => {
       padSourcesRef.current.delete(index)
+      padGainNodesRef.current.delete(index)
       setActivePads((prev) => {
         if (!prev.has(index)) return prev
         const next = new Set(prev)
@@ -388,7 +203,7 @@ export default function ChopEditor({
     const region = regions[index]
     if (!region || region.endSec === null) return
 
-    const mode = triggerModesRef.current[index]
+    const mode = triggerModes[index]
     if (mode === 'gate') {
       if (!padSourcesRef.current.has(index)) startPad(index)
     } else if (mode === 'one-shot') {
@@ -400,55 +215,48 @@ export default function ChopEditor({
   }
 
   function handlePadUp(index: number): void {
-    if (triggerModesRef.current[index] === 'gate') stopPad(index)
+    if (triggerModes[index] === 'gate') stopPad(index)
   }
 
-  function handleCycleTriggerMode(index: number): void {
-    setTriggerModes((prev) => {
-      const next = [...prev]
-      next[index] = nextTriggerMode(prev[index])
-      return next
-    })
-  }
+  const {
+    triggerModes,
+    controllerMap,
+    midiMap,
+    knobMap,
+    padGains,
+    learningPad,
+    learningMidiPad,
+    learningKnobPad,
+    gamepadConnected,
+    midiSupported,
+    midiInputNames,
+    midiDefaults,
+    knobDefaults,
+    handleCycleTriggerMode,
+    handleLearnController,
+    handleClearController,
+    handleLearnMidi,
+    handleClearMidi,
+    handleLearnKnob,
+    handleClearKnob
+  } = usePadController({
+    padCount: MAX_REGIONS,
+    storageKey: 'sampleBuddy.chop.padSettings.v1',
+    onPadDown: handlePadDown,
+    onPadUp: handlePadUp
+  })
 
-  function handleLearnController(index: number): void {
-    setLearningPad((prev) => (prev === index ? null : index))
-  }
-
-  function handleClearController(index: number): void {
-    setControllerMap((prev) => {
-      const next = [...prev]
-      next[index] = null
-      return next
-    })
-  }
-
-  function handleLearnMidi(index: number): void {
-    setLearningMidiPad((prev) => (prev === index ? null : index))
-  }
-
-  function handleClearMidi(index: number): void {
-    setMidiMap((prev) => {
-      const next = [...prev]
-      next[index] = null
-      return next
-    })
-  }
-
-  const triggerModesRef = useRef(triggerModes)
-  triggerModesRef.current = triggerModes
-  handlePadDownRef.current = handlePadDown
-  handlePadUpRef.current = handlePadUp
-
-  // Per-pad default note from a connected known-profile device (e.g. an MPK
-  // Mini MK4), shown in the UI only where no explicit mapping already wins.
-  const midiDefaults = Array.from({ length: MAX_REGIONS }, (_, index) => {
-    if (midiMap[index]) return null
-    for (const name of midiInputNames.values()) {
-      const profile = MIDI_CONTROLLER_PROFILES.find((p) => p.match(name))
-      if (profile) return profile.padNotes[index] ?? null
+  // Live-update any currently-sustaining pad's gain the instant its mapped
+  // knob moves, not just on the pad's next trigger.
+  useEffect(() => {
+    for (const [index, gain] of padGainNodesRef.current) {
+      gain.gain.value = padGains[index] ?? 1
     }
-    return null
+  }, [padGains])
+
+  const pads = Array.from({ length: MAX_REGIONS }, (_, index) => {
+    const region = regions[index]
+    return { label: formatPairLabel(index), ready: !!region && region.endSec !== null }
   })
 
   return (
@@ -507,14 +315,18 @@ export default function ChopEditor({
           </div>
 
           <PadGrid
-            regions={regions}
+            pads={pads}
             activePads={activePads}
             triggerModes={triggerModes}
             controllerMap={controllerMap}
             midiMap={midiMap}
             midiDefaults={midiDefaults}
+            knobMap={knobMap}
+            knobDefaults={knobDefaults}
+            padGains={padGains}
             learningPad={learningPad}
             learningMidiPad={learningMidiPad}
+            learningKnobPad={learningKnobPad}
             onPadDown={handlePadDown}
             onPadUp={handlePadUp}
             onCycleTriggerMode={handleCycleTriggerMode}
@@ -522,6 +334,8 @@ export default function ChopEditor({
             onClearController={handleClearController}
             onLearnMidi={handleLearnMidi}
             onClearMidi={handleClearMidi}
+            onLearnKnob={handleLearnKnob}
+            onClearKnob={handleClearKnob}
           />
         </>
       )}

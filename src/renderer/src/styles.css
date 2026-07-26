@@ -860,6 +860,26 @@ h3 {
   left: 5px;
 }
 
+.pad-learn-knob {
+  --pad-knob-gain: 100%;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--pad-color) 55%, #1a1a1a) var(--pad-knob-gain),
+    #1a1a1a var(--pad-knob-gain)
+  );
+}
+
+.pad-learn-knob:hover {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--pad-color) 70%, #1a1a1a) var(--pad-knob-gain),
+    color-mix(in srgb, var(--pad-color) 25%, #1a1a1a) var(--pad-knob-gain)
+  );
+}
+
 .pad-learn-active {
   color: #0c0c0c;
   background: var(--pad-color);
@@ -884,4 +904,101 @@ h3 {
   50% {
     opacity: 0.5;
   }
+}
+
+/* Record panel */
+.record-device-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 14px;
+}
+
+.record-meter {
+  width: 100%;
+  height: 10px;
+  background: #1a1a1a;
+  border: 1px solid #262626;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.record-meter-fill {
+  height: 100%;
+  background: var(--ok);
+  transition: width 0.05s linear;
+}
+
+.btn-record {
+  background: var(--error);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.btn-record:hover {
+  background: #ff5c5c;
+}
+
+.btn-record-active {
+  animation: pad-learn-pulse 1s ease-in-out infinite;
+}
+
+.record-result {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Playback page */
+.playback-panel {
+  overflow: hidden;
+}
+
+.playback-assign-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.playback-assign-wrap {
+  --pad-color: var(--accent);
+}
+
+.playback-assign-btn {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px dashed var(--pad-color);
+  border-radius: 6px;
+  color: var(--pad-color);
+  font-family: var(--font-body);
+  font-size: 11px;
+  padding: 8px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playback-assign-btn:hover {
+  background: color-mix(in srgb, var(--pad-color) 15%, #1a1a1a);
+}
+
+.playback-assign-set {
+  border-style: solid;
+}
+
+.playback-assign-error {
+  border-color: var(--error);
+  color: var(--error);
 }

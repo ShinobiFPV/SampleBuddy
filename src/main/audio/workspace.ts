@@ -28,3 +28,17 @@ export async function existingOutputNames(profileId: string): Promise<Set<string
     return new Set()
   }
 }
+
+/** %APPDATA%/ShinTech/SampleBuddy/recordings/ — live-captured audio isn't
+ *  tied to a hardware profile the way exported files are (that choice comes
+ *  later, once a recording is handed off to the batch/chop pipeline), so
+ *  this is a sibling of the profile-scoped workspace dirs, not one of them. */
+export function getRecordingsDir(): string {
+  return join(app.getPath('appData'), 'ShinTech', 'SampleBuddy', 'recordings')
+}
+
+export async function ensureRecordingsDir(): Promise<string> {
+  const dir = getRecordingsDir()
+  await mkdir(dir, { recursive: true })
+  return dir
+}

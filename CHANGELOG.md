@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-pad trigger modes (Toggle/Gate/One-shot) on Chop Editor sampler pads, cycled via a badge and persisted per pad in localStorage.
 - Controller mapping ("learn" badge) to bind a physical controller button (Xbox, generic HID joystick, 8BitDo Zero 2) to a chop pad via the Gamepad API, persisted per pad in localStorage.
 - MIDI mapping ("learn" badge) to bind a MIDI note to a chop pad via the Web MIDI API, persisted per pad in localStorage. An Akai MPK Mini MK4 auto-maps its 8 drum pads to the 8 chop pads with no setup; the per-pad MIDI badge overrides the default for that pad or maps any other class-compliant MIDI controller.
+- Record mode: capture audio from any ASIO input device (via `audify`/RtAudio) with a live level meter, then send the recording straight into the Chop Editor. Built for low-latency ASIO specifically, not WASAPI — see CONTRIBUTING.md for the build prerequisites this adds.
+- Playback page: assign a whole sample file to each of 8 pads (independent of the Chop Editor's loaded file) and audition them the same way — mouse, keys 1-8, mapped controller button, or mapped/default-profile MIDI note, with the same trigger-mode and learn/clear UI. Pad hardware-mapping logic is now shared between Chop and Playback via a common hook.
+- Knob-driven per-pad gain trim: any of a connected MIDI device's knobs can be "learned" (or, for an Akai MPK Mini MK4, used out of the box via a default CC profile) to trim a pad's playback volume live, on both the Chop and Playback pages.
 
 ## [0.3.0] - 2026-07-17
 

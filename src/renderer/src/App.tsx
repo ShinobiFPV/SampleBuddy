@@ -20,6 +20,8 @@ import DrivePanel from './components/DrivePanel'
 import ConfirmUploadDialog from './components/ConfirmUploadDialog'
 import ChopEditor from './components/chop/ChopEditor'
 import { formatPairLabel, type ChopRegion } from './components/chop/waveform'
+import RecordPanel from './components/record/RecordPanel'
+import PlaybackEditor from './components/playback/PlaybackEditor'
 
 function defaultActionFor(scanned: ScannedFile, existing?: FileAction): FileAction {
   if (existing) return existing
@@ -190,6 +192,12 @@ export default function App(): JSX.Element {
     }
   }
 
+  function handleSendRecordingToChop(filePath: string): void {
+    setChopSourcePath(filePath)
+    setChopRegions([])
+    setMode('chop')
+  }
+
   async function handleExportChops(): Promise<void> {
     const completeRegions = chopRegions.filter((r): r is ChopRegion & { endSec: number } => r.endSec !== null)
     if (!selectedProfileId || !chopSourcePath || completeRegions.length === 0) return
@@ -289,13 +297,17 @@ export default function App(): JSX.Element {
               onSelectFolder={handleSelectFolder}
               onDecisionChange={handleDecisionChange}
             />
-          ) : (
+          ) : mode === 'chop' ? (
             <ChopEditor
               sourcePath={chopSourcePath}
               onSourcePathChange={setChopSourcePath}
               regions={chopRegions}
               onRegionsChange={setChopRegions}
             />
+          ) : mode === 'record' ? (
+            <RecordPanel onSendToChop={handleSendRecordingToChop} />
+          ) : (
+            <PlaybackEditor />
           )}
           <OutputPanel
             outputDir={formatResult?.outputDir ?? null}
@@ -338,7 +350,7 @@ export default function App(): JSX.Element {
             progress={progress}
             onClick={handleFormatNow}
           />
-        ) : (
+        ) : mode === 'chop' ? (
           <FormatButton
             disabled={!chopSourcePath || chopRegions.every((r) => r.endSec === null)}
             formatting={chopExporting}
@@ -347,7 +359,7 @@ export default function App(): JSX.Element {
             label="EXPORT CHOPS"
             busyLabel="Exporting…"
           />
-        )}
+        ) : null}
       </main>
 
       {confirmOpen && selectedDrive && compliance && (

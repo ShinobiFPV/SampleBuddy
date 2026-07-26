@@ -1,6 +1,6 @@
 import type { DeviceProfile } from '../../../shared/ipc'
 
-export type AppMode = 'batch' | 'chop'
+export type AppMode = 'batch' | 'chop' | 'record' | 'playback'
 
 interface HeaderProps {
   profiles: DeviceProfile[]
@@ -40,6 +40,18 @@ export default function Header({
           onClick={() => onSelectMode('chop')}
         >
           Chop Sample
+        </button>
+        <button
+          className={`mode-toggle-btn${mode === 'record' ? ' mode-toggle-active' : ''}`}
+          onClick={() => onSelectMode('record')}
+        >
+          Record
+        </button>
+        <button
+          className={`mode-toggle-btn${mode === 'playback' ? ' mode-toggle-active' : ''}`}
+          onClick={() => onSelectMode('playback')}
+        >
+          Playback
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
-import { type ChopRegion, MAX_REGIONS, PAIR_COLORS, clamp, computePeaks, labelForIndex } from './waveform'
+import { type ChopRegion, MAX_REGIONS, clamp, computePeaks, labelForIndex } from './waveform'
+import { PAIR_COLORS } from '../../pads/types'
 
 interface WaveformCanvasProps {
   buffer: AudioBuffer

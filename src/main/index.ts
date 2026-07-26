@@ -1,9 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog, session, shell } from 'electron'
 import { readFile } from 'fs/promises'
-import { IPC, type ChopRequest, type FormatNowRequest, type DriveUploadRequest } from '../shared/ipc'
+import { IPC, type ChopRequest, type FormatNowRequest, type DriveUploadRequest, type RecordStartRequest } from '../shared/ipc'
 import { listProfiles } from './profiles'
 import { scanFolderForProfile, formatNow } from './audio/pipeline'
 import { chopAndFormat } from './audio/chop'
+import { listInputDevices, startRecording, stopRecording } from './audio/capture'
 import { listRemovableDrives } from './drive/detect'
 import { checkDriveComplianceById } from './drive/compliance'
 import { uploadToDrive } from './drive/upload'
@@ -71,6 +72,16 @@ function registerIpc(): void {
       if (!event.sender.isDestroyed()) event.sender.send(IPC.audioChopProgress, progress)
     })
   )
+
+  ipcMain.handle(IPC.audioListInputDevices, () => listInputDevices())
+
+  ipcMain.handle(IPC.audioRecordStart, (event, request: RecordStartRequest) =>
+    startRecording(request, (level) => {
+      if (!event.sender.isDestroyed()) event.sender.send(IPC.audioRecordLevel, level)
+    })
+  )
+
+  ipcMain.handle(IPC.audioRecordStop, () => stopRecording())
 }
 
 if (!app.requestSingleInstanceLock()) {

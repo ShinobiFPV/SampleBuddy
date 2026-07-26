@@ -11,6 +11,15 @@ npm run dev       # launch in dev mode
 
 Windows only, for now — see the README for why.
 
+### Build prerequisites for ASIO support
+
+`npm install` compiles [`audify`](https://www.npmjs.com/package/audify) (RtAudio bindings, used for the Record mode's ASIO input capture) from source — `.npmrc` forces this so the build picks up ASIO support, which the package's prebuilt binaries don't include (Steinberg's SDK license means the maintainers can't ship ASIO-enabled binaries publicly; a local build picks up RtAudio's own vendored ASIO host-glue code automatically, no manual SDK download needed). This requires:
+
+- **CMake** — either install it standalone, or use the copy bundled with Visual Studio Build Tools' "C++ CMake tools for Windows" component (typically at `...\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin`, which may need adding to `PATH` if `cmake --version` doesn't already resolve).
+- **Visual Studio Build Tools**, "Desktop development with C++" workload (provides the MSVC compiler).
+
+No `electron-rebuild`/`install-app-deps` step is needed or run — `audify` targets N-API, which is ABI-stable across Node and Electron, so the module builds once against the host Node and loads fine in Electron as-is. (`electron-builder install-app-deps` used to be wired as a `postinstall` step here; it was removed because its native-module rebuild path assumes `node-gyp`/`binding.gyp`, and audify uses `cmake-js`/`CMakeLists.txt` instead — running it corrupts the working build rather than helping.)
+
 ## Making changes
 
 1. Fork the repo and create a branch off `master`.

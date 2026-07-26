@@ -12,6 +12,11 @@ import {
   type FormatNowRequest,
   type FormatNowResult,
   type FormatProgressEvent,
+  type RecordDeviceInfo,
+  type RecordLevelEvent,
+  type RecordStartRequest,
+  type RecordStartResult,
+  type RecordStopResult,
   type ScannedFile
 } from '../shared/ipc'
 
@@ -41,6 +46,16 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: FormatProgressEvent): void => cb(payload)
       ipcRenderer.on(IPC.audioChopProgress, listener)
       return () => ipcRenderer.removeListener(IPC.audioChopProgress, listener)
+    }
+  },
+  record: {
+    listInputDevices: (): Promise<RecordDeviceInfo[]> => ipcRenderer.invoke(IPC.audioListInputDevices),
+    start: (request: RecordStartRequest): Promise<RecordStartResult> => ipcRenderer.invoke(IPC.audioRecordStart, request),
+    stop: (): Promise<RecordStopResult> => ipcRenderer.invoke(IPC.audioRecordStop),
+    onLevel: (cb: (e: RecordLevelEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: RecordLevelEvent): void => cb(payload)
+      ipcRenderer.on(IPC.audioRecordLevel, listener)
+      return () => ipcRenderer.removeListener(IPC.audioRecordLevel, listener)
     }
   },
   drive: {

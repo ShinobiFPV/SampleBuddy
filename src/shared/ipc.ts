@@ -18,7 +18,11 @@ export const IPC = {
   dialogSelectSourceFile: 'dialog:selectSourceFile',
   audioReadFileBuffer: 'audio:readFileBuffer',
   audioChopAndFormat: 'audio:chopAndFormat',
-  audioChopProgress: 'audio:chopProgress'
+  audioChopProgress: 'audio:chopProgress',
+  audioListInputDevices: 'audio:listInputDevices',
+  audioRecordStart: 'audio:recordStart',
+  audioRecordStop: 'audio:recordStop',
+  audioRecordLevel: 'audio:recordLevel'
 } as const
 
 export type ComplianceStatus = 'ok' | 'needs-conversion' | 'cannot-comply'
@@ -149,4 +153,31 @@ export interface ChopRequest {
   profileId: string
   naming: NamingOptions
   regions: ChopRegionRequest[]
+}
+
+/** An ASIO-capable input device, as reported by RtAudio (via `audify`). */
+export interface RecordDeviceInfo {
+  id: number
+  name: string
+  inputChannels: number
+  isDefaultInput: boolean
+  preferredSampleRate: number
+}
+
+export interface RecordStartRequest {
+  deviceId: number
+}
+
+export type RecordStartResult = { ok: true } | { ok: false; error: string }
+
+/** Peak/RMS amplitude for the live level meter, both normalized 0-1.
+ *  Throttled in the main process — not sent on every audio callback. */
+export interface RecordLevelEvent {
+  peak: number
+  rms: number
+}
+
+export interface RecordStopResult {
+  filePath: string
+  durationSec: number
 }
