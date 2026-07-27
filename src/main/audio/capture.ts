@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { join } from 'path'
 import { RtAudio, RtAudioApi, RtAudioFormat } from 'audify'
 import { getFfmpegPath } from './ffmpegPaths'
+import { getAsioControlPanelPath } from './asioControlPanelPath'
 import { probeFile } from './probe'
 import { ensureRecordingsDir } from './workspace'
 import type { RecordDeviceInfo, RecordLevelEvent, RecordStartRequest, RecordStartResult, RecordStopResult } from '../../shared/ipc'
@@ -138,4 +139,49 @@ export async function stopRecording(): Promise<RecordStopResult> {
 
   const probed = await probeFile(outputPath)
   return { filePath: outputPath, durationSec: probed.durationSec }
+}
+
+/** Launches the native ASIO control-panel helper (see
+ *  native/asio-control-panel/README.md) for the given driver name and
+ *  leaves it running detached — it opens the driver's own settings window
+ *  (e.g. ASIO4ALL's) and stays up until the user closes it, independent of
+ *  SampleBuddy. ASIO drivers only allow one exclusive host at a time, so
+ *  this can't run alongside an active recording (which already holds the
+ *  driver open via `session.rtAudio`). */
+export async function openAsioControlPanel(driverName: string): Promise<RecordStartResult> {
+  if (session) return { ok: false, error: 'Stop the current recording before opening ASIO settings' }
+
+  return new Promise((resolve) => {
+    const child = spawn(getAsioControlPanelPath(), [driverName], {
+      windowsHide: true
+    }) as ChildProcessWithoutNullStreams
+    let settled = false
+    let stderr = ''
+
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
+    })
+    child.on('error', (e) => {
+      if (!settled) {
+        settled = true
+        resolve({ ok: false, error: e.message })
+      }
+    })
+    // The helper only exits this early if it hit a startup error (bad
+    // driver name, or init() failing because something else has the
+    // driver open) — once its settings window is up it runs until the
+    // user closes it, which we don't wait for.
+    child.on('exit', (code) => {
+      if (!settled && code !== 0) {
+        settled = true
+        resolve({ ok: false, error: stderr.trim() || `ASIO control panel exited with code ${code}` })
+      }
+    })
+    setTimeout(() => {
+      if (!settled) {
+        settled = true
+        resolve({ ok: true })
+      }
+    }, 1500)
+  })
 }

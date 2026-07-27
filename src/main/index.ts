@@ -13,7 +13,7 @@ import {
 import { listProfiles } from './profiles'
 import { scanFolderForProfile, formatNow } from './audio/pipeline'
 import { chopAndFormat } from './audio/chop'
-import { listInputDevices, startRecording, stopRecording } from './audio/capture'
+import { listInputDevices, openAsioControlPanel, startRecording, stopRecording } from './audio/capture'
 import {
   listOutputDevices,
   sendMidiNote,
@@ -99,6 +99,8 @@ function registerIpc(): void {
   )
 
   ipcMain.handle(IPC.audioRecordStop, () => stopRecording())
+
+  ipcMain.handle(IPC.audioOpenAsioControlPanel, (_event, driverName: string) => openAsioControlPanel(driverName))
 
   ipcMain.handle(IPC.dialogSelectVst3File, async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)

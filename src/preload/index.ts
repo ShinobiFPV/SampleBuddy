@@ -61,7 +61,9 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: RecordLevelEvent): void => cb(payload)
       ipcRenderer.on(IPC.audioRecordLevel, listener)
       return () => ipcRenderer.removeListener(IPC.audioRecordLevel, listener)
-    }
+    },
+    openAsioControlPanel: (driverName: string): Promise<RecordStartResult> =>
+      ipcRenderer.invoke(IPC.audioOpenAsioControlPanel, driverName)
   },
   instrument: {
     listDevices: (): Promise<InstrumentDeviceInfo[]> => ipcRenderer.invoke(IPC.instrumentListDevices),

@@ -4,6 +4,7 @@ out/
 release/
 .vite/
 native/vst-host/build/
+native/asio-control-panel/build/
 *.log
 *.tsbuildinfo
 .DS_Store

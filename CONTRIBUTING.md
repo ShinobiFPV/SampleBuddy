@@ -32,6 +32,14 @@ Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake -
 
 **Packaging**: `npm run release` bundles the built exe (and `LICENSE`) into the installer via `build.extraResources` in `package.json`, landing at `resources/vst-host/` in the installed app (see `src/main/audio/instrumentPaths.ts` for how the main process resolves this at runtime vs. the dev-mode CMake build path). This means `native/vst-host/` **must already be built** (per the steps above) before running `npm run release` — electron-builder will fail with a missing-file error otherwise, since unlike `audify`/`ffmpeg` there's no npm package to fall back on.
 
+### `native/asio-control-panel/` — opening a driver's own settings UI (Record page)
+
+`native/asio-control-panel/` is a small standalone CMake project (no JUCE, just the vendored Steinberg ASIO SDK host-loader files under `Source/asio-sdk/`), spawned as a one-shot child process by `src/main/audio/capture.ts`. ASIO has no standalone settings launcher — a driver's control panel (e.g. ASIO4ALL's) can only be shown by a host that loads the driver via COM and calls `IASIO::controlPanel()`, which `audify` doesn't expose — so this fills that gap. It needs the same CMake + Visual Studio Build Tools prerequisites as `audify` above; no internet access or FetchContent step needed since the SDK files are vendored directly in the repo.
+
+Build with `cmake -S . -B build -G "Visual Studio 17 2022" -A x64` then `cmake --build build --config Release --target AsioControlPanel`. See `native/asio-control-panel/README.md` for the licensing rationale (GPLv3, same reasoning as `native/vst-host/`) and usage details — notably that the driver's control panel window only renders once the host is pumping Windows messages, which is why the helper shows its own small "close when done" window and keeps a message loop running until that's closed, rather than exiting the moment `controlPanel()` returns.
+
+**Packaging**: same as `native/vst-host/` above — `npm run release` bundles the built exe via `build.extraResources`, landing at `resources/asio-control-panel/`. `native/asio-control-panel/` **must already be built** before running `npm run release`.
+
 ## Making changes
 
 1. Fork the repo and create a branch off `master`.

@@ -81,6 +81,14 @@
       {
         "from": "native/vst-host/LICENSE",
         "to": "vst-host/LICENSE"
+      },
+      {
+        "from": "native/asio-control-panel/build/Release/SampleBuddy ASIO Control Panel.exe",
+        "to": "asio-control-panel/SampleBuddy ASIO Control Panel.exe"
+      },
+      {
+        "from": "native/asio-control-panel/LICENSE",
+        "to": "asio-control-panel/LICENSE"
       }
     ]
   }

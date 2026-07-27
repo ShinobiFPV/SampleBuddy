@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RecordDeviceInfo } from '../../../../shared/ipc'
+import { useControlAssignment } from '../../pads/useControlAssignment'
+import ControlAssignBadges from '../../pads/ControlAssignBadges'
 
 interface RecordPanelProps {
   onSendToChop: (filePath: string) => void
@@ -54,9 +56,23 @@ export default function RecordPanel({ onSendToChop }: RecordPanelProps): JSX.Ele
     setRecording(true)
   }
 
+  const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? null
+
+  async function handleOpenAsioSettings(): Promise<void> {
+    if (!selectedDevice) return
+    setError(null)
+    const result = await window.sampleBuddy.record.openAsioControlPanel(selectedDevice.name)
+    if (!result.ok) setError(result.error)
+  }
+
   useEffect(() => {
     return () => unsubscribeLevelRef.current?.()
   }, [])
+
+  const control = useControlAssignment({
+    storageKey: 'sampleBuddy.record.controlMap.v1',
+    onTrigger: handleToggleRecord
+  })
 
   return (
     <section className="panel record-panel">
@@ -73,18 +89,29 @@ export default function RecordPanel({ onSendToChop }: RecordPanelProps): JSX.Ele
         <>
           <label className="record-device-field">
             Input device
-            <select
-              className="profile-picker"
-              value={selectedDeviceId ?? ''}
-              disabled={recording}
-              onChange={(e) => setSelectedDeviceId(Number(e.target.value))}
-            >
-              {devices.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.inputChannels}ch, {d.preferredSampleRate}Hz)
-                </option>
-              ))}
-            </select>
+            <div className="record-device-row">
+              <select
+                className="profile-picker"
+                value={selectedDeviceId ?? ''}
+                disabled={recording}
+                onChange={(e) => setSelectedDeviceId(Number(e.target.value))}
+              >
+                {devices.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.inputChannels}ch, {d.preferredSampleRate}Hz)
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={recording || !selectedDevice}
+                onClick={handleOpenAsioSettings}
+                title="Open this ASIO driver's own settings panel (e.g. ASIO4ALL's input configuration)"
+              >
+                ASIO Settings…
+              </button>
+            </div>
           </label>
 
           <div className="record-meter">
@@ -94,6 +121,18 @@ export default function RecordPanel({ onSendToChop }: RecordPanelProps): JSX.Ele
           <button className={`btn-record${recording ? ' btn-record-active' : ''}`} onClick={handleToggleRecord}>
             {recording ? 'Stop' : 'Record'}
           </button>
+
+          <ControlAssignBadges
+            actionLabel="Record"
+            controllerMap={control.controllerMap}
+            midiMap={control.midiMap}
+            learningController={control.learningController}
+            learningMidi={control.learningMidi}
+            onLearnController={control.handleLearnController}
+            onClearController={control.handleClearController}
+            onLearnMidi={control.handleLearnMidi}
+            onClearMidi={control.handleClearMidi}
+          />
 
           {error && <p className="file-row-reasons">{error}</p>}
 

@@ -23,6 +23,7 @@ export const IPC = {
   audioRecordStart: 'audio:recordStart',
   audioRecordStop: 'audio:recordStop',
   audioRecordLevel: 'audio:recordLevel',
+  audioOpenAsioControlPanel: 'audio:openAsioControlPanel',
   dialogSelectVst3File: 'dialog:selectVst3File',
   instrumentListDevices: 'instrument:listDevices',
   instrumentStart: 'instrument:start',

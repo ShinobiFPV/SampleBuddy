@@ -3,6 +3,8 @@ import { formatDuration } from '../../format'
 import WaveformCanvas from './WaveformCanvas'
 import PadGrid from '../../pads/PadGrid'
 import { usePadController } from '../../pads/usePadController'
+import { useControlAssignment } from '../../pads/useControlAssignment'
+import ControlAssignBadges from '../../pads/ControlAssignBadges'
 import { MAX_REGIONS, type ChopRegion, formatPairLabel } from './waveform'
 
 interface ChopEditorProps {
@@ -246,6 +248,11 @@ export default function ChopEditor({
     onPadUp: handlePadUp
   })
 
+  const transportControl = useControlAssignment({
+    storageKey: 'sampleBuddy.chop.transportControlMap.v1',
+    onTrigger: () => (playing ? stopTransport() : handlePlay())
+  })
+
   // Live-update any currently-sustaining pad's gain the instant its mapped
   // knob moves, not just on the pad's next trigger.
   useEffect(() => {
@@ -290,6 +297,17 @@ export default function ChopEditor({
             <button className="btn-secondary" onClick={playing ? stopTransport : handlePlay}>
               {playing ? 'Stop' : 'Play'}
             </button>
+            <ControlAssignBadges
+              actionLabel="Play/Stop"
+              controllerMap={transportControl.controllerMap}
+              midiMap={transportControl.midiMap}
+              learningController={transportControl.learningController}
+              learningMidi={transportControl.learningMidi}
+              onLearnController={transportControl.handleLearnController}
+              onClearController={transportControl.handleClearController}
+              onLearnMidi={transportControl.handleLearnMidi}
+              onClearMidi={transportControl.handleClearMidi}
+            />
             <span className="chop-time">
               {formatDuration(playheadSec)} / {formatDuration(audioBuffer.duration)}
             </span>
