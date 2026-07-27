@@ -30,7 +30,7 @@ function drawFlag(ctx: CanvasRenderingContext2D, x: number, label: string, color
   ctx.closePath()
   ctx.fill()
 
-  ctx.fillStyle = '#0c0c0c'
+  ctx.fillStyle = '#211e19'
   ctx.font = 'bold 11px "Space Mono", Consolas, monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -101,7 +101,7 @@ export default function WaveformCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     ctx.clearRect(0, 0, canvasWidth, CANVAS_HEIGHT)
-    ctx.fillStyle = '#0f0f0f'
+    ctx.fillStyle = '#211e19'
     ctx.fillRect(0, 0, canvasWidth, CANVAS_HEIGHT)
 
     // Region tints, drawn before the waveform so the waveform stays legible on top.
@@ -118,7 +118,7 @@ export default function WaveformCanvas({
     // be this exact stroke color too and made "A/B" markers vanish into the
     // waveform itself).
     const mid = CANVAS_HEIGHT / 2
-    ctx.strokeStyle = '#8a8f98'
+    ctx.strokeStyle = '#a89d87'
     ctx.beginPath()
     for (let x = 0; x < canvasWidth; x++) {
       const yMin = mid + peaks.min[x] * mid

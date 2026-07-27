@@ -6,17 +6,9 @@ interface HeaderProps {
   profiles: DeviceProfile[]
   selectedProfileId: string
   onSelectProfile: (id: string) => void
-  mode: AppMode
-  onSelectMode: (mode: AppMode) => void
 }
 
-export default function Header({
-  profiles,
-  selectedProfileId,
-  onSelectProfile,
-  mode,
-  onSelectMode
-}: HeaderProps): JSX.Element {
+export default function Header({ profiles, selectedProfileId, onSelectProfile }: HeaderProps): JSX.Element {
   const selected = profiles.find((p) => p.id === selectedProfileId)
 
   return (
@@ -26,39 +18,6 @@ export default function Header({
           Sample<span className="wordmark-accent">Buddy</span>
         </h1>
         <span className="byline">ShinTech Electronics</span>
-      </div>
-
-      <div className="mode-toggle-row">
-        <button
-          className={`mode-toggle-btn${mode === 'batch' ? ' mode-toggle-active' : ''}`}
-          onClick={() => onSelectMode('batch')}
-        >
-          Batch Format
-        </button>
-        <button
-          className={`mode-toggle-btn${mode === 'chop' ? ' mode-toggle-active' : ''}`}
-          onClick={() => onSelectMode('chop')}
-        >
-          Chop Sample
-        </button>
-        <button
-          className={`mode-toggle-btn${mode === 'record' ? ' mode-toggle-active' : ''}`}
-          onClick={() => onSelectMode('record')}
-        >
-          Record
-        </button>
-        <button
-          className={`mode-toggle-btn${mode === 'playback' ? ' mode-toggle-active' : ''}`}
-          onClick={() => onSelectMode('playback')}
-        >
-          Playback
-        </button>
-        <button
-          className={`mode-toggle-btn${mode === 'instrument' ? ' mode-toggle-active' : ''}`}
-          onClick={() => onSelectMode('instrument')}
-        >
-          Instrument
-        </button>
       </div>
 
       <div className="profile-picker-row">

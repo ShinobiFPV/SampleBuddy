@@ -4,16 +4,19 @@
  *  physical input fires pad N" lives here. */
 
 /** Cycled per pad index so a pad's markers/button/badges share a color —
- *  8 accent-adjacent hues, evenly spread and readable on the app's dark bg. */
+ *  8 hues in a warm-to-cool sweep, matched to the app's per-mode accent
+ *  family so pad colors read as siblings of the chrome rather than clashing
+ *  with it. Tuned to stay legible both on the light panel chrome and as
+ *  tinted overlays on the dark waveform "screen". */
 export const PAIR_COLORS = [
-  '#ffd633',
-  '#ff9e3d',
-  '#ff5c7a',
-  '#e05cff',
-  '#7c8bff',
-  '#3dd1ff',
-  '#3dffb0',
-  '#a8ff3d'
+  '#dc9a2e',
+  '#d97a3a',
+  '#d94f3f',
+  '#c9508a',
+  '#8c5bc4',
+  '#4472c4',
+  '#2c9f92',
+  '#6ba23a'
 ]
 
 /** How a pad responds to a press, whether from mouse/touch, the 1-8 keyboard

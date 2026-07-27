@@ -13,7 +13,7 @@ export function createMainWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#eee7d8',
     title: 'SampleBuddy — ShinTech Electronics',
     icon: join(__dirname, '../../build/icon.png'),
     webPreferences: {

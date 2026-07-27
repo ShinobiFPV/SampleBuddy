@@ -12,6 +12,7 @@ import type {
   ScannedFile
 } from '../../shared/ipc'
 import Header, { type AppMode } from './components/Header'
+import ModeRail from './components/ModeRail'
 import SourcePanel from './components/SourcePanel'
 import NamingOptions from './components/NamingOptions'
 import FormatButton from './components/FormatButton'
@@ -277,93 +278,104 @@ export default function App(): JSX.Element {
     }
   }
 
-  return (
-    <div className="app">
-      <Header
-        profiles={profiles}
-        selectedProfileId={selectedProfileId}
-        onSelectProfile={setSelectedProfileId}
-        mode={mode}
-        onSelectMode={setMode}
-      />
+  // Only Batch and Chop actually drive Naming/Drive/Output (only they render a
+  // FormatButton) — showing that row on Record/Playback/Instrument would just be
+  // stale, non-interactive panels stealing width from the pad grid/meters/controls
+  // those modes actually need.
+  const showExportPanels = mode === 'batch' || mode === 'chop'
 
-      <main className="main-content">
-        <div className="main-columns">
+  const primaryPanel =
+    mode === 'batch' ? (
+      <SourcePanel
+        sourceDir={sourceDir}
+        scannedFiles={scannedFiles}
+        loading={scanning}
+        decisions={decisions}
+        onSelectFolder={handleSelectFolder}
+        onDecisionChange={handleDecisionChange}
+      />
+    ) : mode === 'chop' ? (
+      <ChopEditor
+        sourcePath={chopSourcePath}
+        onSourcePathChange={setChopSourcePath}
+        regions={chopRegions}
+        onRegionsChange={setChopRegions}
+      />
+    ) : mode === 'record' ? (
+      <RecordPanel onSendToChop={handleSendRecordingToChop} />
+    ) : mode === 'playback' ? (
+      <PlaybackEditor />
+    ) : (
+      <InstrumentPanel onSendToChop={handleSendRecordingToChop} />
+    )
+
+  return (
+    <div className="app" data-mode={mode}>
+      <ModeRail mode={mode} onSelectMode={setMode} />
+
+      <div className="app-body">
+        <Header profiles={profiles} selectedProfileId={selectedProfileId} onSelectProfile={setSelectedProfileId} />
+
+        <main className="main-content">
+          <div className={`main-columns${showExportPanels ? '' : ' main-columns-solo'}`}>
+            {primaryPanel}
+            {showExportPanels && (
+              <OutputPanel
+                outputDir={formatResult?.outputDir ?? null}
+                files={formatResult?.files ?? []}
+                checked={outputChecked}
+                onToggle={handleToggleOutput}
+              />
+            )}
+          </div>
+
+          {showExportPanels && (
+            <div className="main-columns">
+              <NamingOptions profile={selectedProfile} value={naming} onChange={setNaming} />
+              <DrivePanel
+                profile={selectedProfile}
+                outputDir={formatResult?.outputDir ?? null}
+                checkedCount={checkedFilenames.length}
+                onOpenStagingFolder={handleOpenStagingFolder}
+                drives={drives}
+                loadingDrives={loadingDrives}
+                onRefreshDrives={refreshDrives}
+                selectedDriveLetter={selectedDriveLetter}
+                onSelectDrive={handleSelectDrive}
+                compliance={compliance}
+                checkingCompliance={checkingCompliance}
+                uploading={uploading}
+                uploadProgress={uploadProgress}
+                uploadedFilenames={uploadedFilenames}
+                onUploadClick={handleUploadClick}
+                group={group}
+                onGroupChange={setGroup}
+                ejectingDriveLetter={ejectingDriveLetter}
+                ejectMessage={ejectMessage}
+                onEjectClick={handleEjectDrive}
+              />
+            </div>
+          )}
+
           {mode === 'batch' ? (
-            <SourcePanel
-              sourceDir={sourceDir}
-              scannedFiles={scannedFiles}
-              loading={scanning}
-              decisions={decisions}
-              onSelectFolder={handleSelectFolder}
-              onDecisionChange={handleDecisionChange}
+            <FormatButton
+              disabled={scannedFiles.length === 0}
+              formatting={formatting}
+              progress={progress}
+              onClick={handleFormatNow}
             />
           ) : mode === 'chop' ? (
-            <ChopEditor
-              sourcePath={chopSourcePath}
-              onSourcePathChange={setChopSourcePath}
-              regions={chopRegions}
-              onRegionsChange={setChopRegions}
+            <FormatButton
+              disabled={!chopSourcePath || chopRegions.every((r) => r.endSec === null)}
+              formatting={chopExporting}
+              progress={chopProgress}
+              onClick={handleExportChops}
+              label="EXPORT CHOPS"
+              busyLabel="Exporting…"
             />
-          ) : mode === 'record' ? (
-            <RecordPanel onSendToChop={handleSendRecordingToChop} />
-          ) : mode === 'playback' ? (
-            <PlaybackEditor />
-          ) : (
-            <InstrumentPanel onSendToChop={handleSendRecordingToChop} />
-          )}
-          <OutputPanel
-            outputDir={formatResult?.outputDir ?? null}
-            files={formatResult?.files ?? []}
-            checked={outputChecked}
-            onToggle={handleToggleOutput}
-          />
-        </div>
-
-        <div className="main-columns">
-          <NamingOptions profile={selectedProfile} value={naming} onChange={setNaming} />
-          <DrivePanel
-            profile={selectedProfile}
-            outputDir={formatResult?.outputDir ?? null}
-            checkedCount={checkedFilenames.length}
-            onOpenStagingFolder={handleOpenStagingFolder}
-            drives={drives}
-            loadingDrives={loadingDrives}
-            onRefreshDrives={refreshDrives}
-            selectedDriveLetter={selectedDriveLetter}
-            onSelectDrive={handleSelectDrive}
-            compliance={compliance}
-            checkingCompliance={checkingCompliance}
-            uploading={uploading}
-            uploadProgress={uploadProgress}
-            uploadedFilenames={uploadedFilenames}
-            onUploadClick={handleUploadClick}
-            group={group}
-            onGroupChange={setGroup}
-            ejectingDriveLetter={ejectingDriveLetter}
-            ejectMessage={ejectMessage}
-            onEjectClick={handleEjectDrive}
-          />
-        </div>
-
-        {mode === 'batch' ? (
-          <FormatButton
-            disabled={scannedFiles.length === 0}
-            formatting={formatting}
-            progress={progress}
-            onClick={handleFormatNow}
-          />
-        ) : mode === 'chop' ? (
-          <FormatButton
-            disabled={!chopSourcePath || chopRegions.every((r) => r.endSec === null)}
-            formatting={chopExporting}
-            progress={chopProgress}
-            onClick={handleExportChops}
-            label="EXPORT CHOPS"
-            busyLabel="Exporting…"
-          />
-        ) : null}
-      </main>
+          ) : null}
+        </main>
+      </div>
 
       {confirmOpen && selectedDrive && compliance && (
         <ConfirmUploadDialog
